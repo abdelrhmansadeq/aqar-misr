@@ -47,7 +47,7 @@ export default async function AdminPropertiesPage() {
                                 </td>
                                 <td className="px-4 py-3">
                                     <Badge variant={prop.status === 'published' ? 'default' : 'secondary'}>
-                                        {prop.status === 'published' ? 'منشور' : 'مسودة'}
+                                        {prop.status === 'published' ? 'منشور' : 'مسودةه'}
                                     </Badge>
                                 </td>
                                 <td className="px-4 py-3">

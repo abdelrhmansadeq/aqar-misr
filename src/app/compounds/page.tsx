@@ -3,11 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { MapPin, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default async function CompoundsPage() {
     const supabase = await createClient();
 
-    // بنجيب الكومباوندات وبنربطها بجدول المطورين عشان نعرف اسم المطور
     const { data: compounds } = await supabase
         .from("compounds")
         .select(`
@@ -29,44 +29,46 @@ export default async function CompoundsPage() {
                         : compound.developers?.name;
 
                     return (
-                        <Card key={compound.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group bg-card border-border flex flex-col">
-                            <div className="relative aspect-[16/9] overflow-hidden">
-                                <Image
-                                    src={compound.cover_image_url || "/placeholder.jpg"}
-                                    alt={compound.name}
-                                    fill
-                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // ضفنا السطر ده
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                                <div className="absolute top-3 right-3">
-                                    <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm">
-                                        {developerName || "مطور عقاري"}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <CardContent className="p-5 flex-1 flex flex-col">
-                                <h3 className="text-2xl font-bold mb-2 text-foreground">{compound.name}</h3>
-                                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-                                    <MapPin className="h-4 w-4" />
-                                    <span>{compound.city}، {compound.district}</span>
-                                </div>
-
-                                <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
-                                    {compound.description}
-                                </p>
-
-                                <div className="space-y-2 mt-auto">
-                                    <div className="flex items-start gap-2 text-sm">
-                                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                                        <span className="text-muted-foreground"><strong className="text-foreground">المرافق:</strong> {compound.amenities?.join('، ')}</span>
-                                    </div>
-                                    <div className="flex items-start gap-2 text-sm">
-                                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                                        <span className="text-muted-foreground"><strong className="text-foreground">أنظمة الدفع:</strong> {compound.payment_plans}</span>
+                        <Link href={`/compounds/${compound.slug}`} key={compound.id}>
+                            <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group bg-card border-border flex flex-col h-full">
+                                <div className="relative aspect-video overflow-hidden">
+                                    <Image
+                                        src={compound.cover_image_url || "/placeholder.jpg"}
+                                        alt={compound.name}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                    <div className="absolute top-3 right-3">
+                                        <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm">
+                                            {developerName || "مطور عقاري"}
+                                        </Badge>
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
+                                <CardContent className="p-5 flex-1 flex flex-col">
+                                    <h3 className="text-2xl font-bold mb-2 text-foreground group-hover:text-primary transition-colors">{compound.name}</h3>
+                                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
+                                        <MapPin className="h-4 w-4" />
+                                        <span>{compound.city}، {compound.district}</span>
+                                    </div>
+
+                                    <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
+                                        {compound.description}
+                                    </p>
+
+                                    <div className="space-y-2 mt-auto">
+                                        <div className="flex items-start gap-2 text-sm">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                            <span className="text-muted-foreground line-clamp-1"><strong className="text-foreground">المرافق:</strong> {compound.amenities?.join('، ')}</span>
+                                        </div>
+                                        <div className="flex items-start gap-2 text-sm">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                            <span className="text-muted-foreground line-clamp-1"><strong className="text-foreground">أنظمة الدفع:</strong> {compound.payment_plans}</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     );
                 })}
             </div>

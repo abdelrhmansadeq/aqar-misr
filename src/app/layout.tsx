@@ -17,8 +17,26 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-    title: "عقار مصر | موقع العقارات الأول",
-    description: "ابحث عن شقق، فيلات، وأراضي للبيع والإيجار في مصر.",
+    title: {
+        default: "عقار مصر | بوابتك لعالم العقارات",
+        template: "%s | عقار مصر"
+    },
+    description: "الموقع الأول للعقارات في مصر. تصفح آلاف الشقق، الفيلات، والأراضي للبيع والإيجار بأفضل الأسعار.",
+    keywords: ["عقارات مصر", "شقق للبيع", "شقق للإيجار", "فيلات للبيع", "أراضي للبيع", "التجمع الخامس", "العاصمة الإدارية"],
+    authors: [{ name: "Abdelrhman Sadeq" }],
+    openGraph: {
+        title: "عقار مصر | بوابتك لعالم العقارات",
+        description: "تصفح آلاف العقارات الموثقة للبيع والإيجار في مصر.",
+        url: "https://aqar-misr-six.vercel.app", // اللينك بتاعك
+        siteName: "عقار مصر",
+        locale: "ar_EG",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "عقار مصر",
+        description: "تصفح آلاف العقارات الموثقة للبيع والإيجار في مصر.",
+    },
 };
 
 export default function RootLayout({

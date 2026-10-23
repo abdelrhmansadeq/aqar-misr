@@ -8,6 +8,26 @@ import Link from "next/link";
 import { generateWhatsAppLink } from "@/lib/utils/whatsapp";
 import { InstallmentCalculator } from "@/components/property/installment-calculator";
 import { ViewingRequestDialog } from "@/components/property/viewing-request-dialog";
+import { Metadata } from "next";
+
+// 1. دالة الـ SEO (بتجيب اسم العقار ووصفه للجوجل)
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const resolvedParams = await params;
+    const supabase = await createClient();
+    const { data: property } = await supabase.from("properties").select("title, description, image_url").eq("id", resolvedParams.id).single();
+
+    if (!property) return { title: "العقار غير موجود" };
+
+    return {
+        title: `${property.title} | عقار مصر`,
+        description: property.description.substring(0, 160),
+        openGraph: {
+            title: property.title,
+            description: property.description.substring(0, 160),
+            images: [{ url: property.image_url || "/placeholder.jpg" }],
+        },
+    };
+}
 
 export default async function PropertyDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = await params;
@@ -29,19 +49,35 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
     const phoneToUse = advertiserPhone || "01000000000";
     const whatsappLink = generateWhatsAppLink(phoneToUse, property.title, property.id);
 
+    // 2. البيانات المنظمة (عشان جوجل يعرض السعر والمواصفات)
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "RealEstateListing",
+        name: property.title,
+        description: property.description,
+        image: imageUrl,
+        offers: {
+            "@type": "Offer",
+            price: property.price,
+            priceCurrency: "EGP",
+        },
+    };
+
     return (
         <div className="container mx-auto px-0 md:px-4 py-0 md:py-8 max-w-5xl">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            {/* كود الـ JSON-LD مخفي للمستخدم وموجود للجوجل */}
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-                {/* الجزء الأيسر (الصور والتفاصيل) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                {/* ... (نفس الكود اللي إنت واقف عليه بالظبط من بتاع الصور والتفاصيل والأزرار) ... */}
+                {/* هتسيب الجزء ده زي ما هو بالظبط من غير تغيير */}
+
                 <div className="md:col-span-2 space-y-6">
                     <div className="relative aspect-[4/3] md:aspect-video w-full overflow-hidden md:rounded-2xl bg-muted">
-                        <Image src={imageUrl} alt={property.title} fill className="object-cover" priority />
+                        <Image src={imageUrl} alt={property.title} fill sizes="(max-width: 768px) 100vw, 800px" className="object-cover" priority />
                         <div className="absolute top-4 right-4 flex gap-2">
                             {property.verified && (
-                                <Badge className="bg-green-600 text-white border-0 px-3 py-1 text-sm flex items-center gap-1">
-                                    <CheckCircle2 className="h-4 w-4" /> موثق
-                                </Badge>
+                                <Badge className="bg-green-600 text-white border-0 px-3 py-1 text-sm flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> موثق</Badge>
                             )}
                             <Badge variant="secondary" className="px-3 py-1 text-sm bg-background/90 text-foreground">
                                 {property.purpose === "sale" ? "للبيع" : "للإيجار"}
@@ -86,12 +122,8 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                             <p className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm md:text-base">{property.description}</p>
                         </div>
 
-                        {/* حاسبة الأقساط (تظهر لو العقار للبيع بس) */}
-                        {property.purpose === "sale" && (
-                            <InstallmentCalculator price={property.price} />
-                        )}
+                        {property.purpose === "sale" && <InstallmentCalculator price={property.price} />}
 
-                        {/* أزرار التواصل للموبايل */}
                         <div className="md:hidden border rounded-2xl p-5 bg-card mt-8 mb-4">
                             <div className="mb-4">
                                 <span className="text-sm text-muted-foreground block mb-1">السعر المطلوب</span>
@@ -107,7 +139,6 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                                 <a href={`tel:${phoneToUse}`} className="block">
                                     <Button variant="outline" className="w-full py-6 text-lg gap-2 border-primary text-primary hover:bg-primary/5"><Phone className="h-5 w-5" />اتصال هاتفي</Button>
                                 </a>
-                                {/* زرار حجز المعاينة في الموبايل */}
                                 <div className="mt-3">
                                     <ViewingRequestDialog propertyId={property.id} />
                                 </div>
@@ -116,7 +147,6 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                     </div>
                 </div>
 
-                {/* الجزء الأيمن (للكمبيوتر) */}
                 <div className="hidden md:block md:col-span-1">
                     <div className="sticky top-24 border rounded-2xl p-6 shadow-sm bg-card">
                         <div className="mb-6">
@@ -133,14 +163,12 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                             <a href={`tel:${phoneToUse}`} className="block">
                                 <Button variant="outline" className="w-full py-6 text-lg gap-2 border-primary text-primary hover:bg-primary/5"><Phone className="h-5 w-5" />اتصال هاتفي</Button>
                             </a>
-                            {/* زرار حجز المعاينة في الكمبيوتر */}
                             <div className="mt-3">
                                 <ViewingRequestDialog propertyId={property.id} />
                             </div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );

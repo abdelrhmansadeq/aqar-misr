@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Users, CalendarDays, Eye } from "lucide-react";
+import { Home, Users, CalendarDays, Eye, PlusCircle, ArrowLeft, Building2 } from "lucide-react";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default async function AdminDashboard() {
     const supabase = await createClient();
@@ -11,22 +13,16 @@ export default async function AdminDashboard() {
     const { count: usersCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
     const { count: leadsCount } = await supabase.from("leads").select("*", { count: "exact", head: true });
 
-    // 2. جلب بيانات العقارات لعمل الرسوم البيانية
+    // 2. جلب بيانات العقارات للرسوم البيانية
     const { data: properties } = await supabase.from("properties").select("purpose, type");
 
-    // حساب الغرض (بيع/إيجار)
     let saleCount = 0;
     let rentCount = 0;
-
-    // حساب الأنواع
     const typeCounts: Record<string, number> = {};
 
     properties?.forEach((prop) => {
-        // الغرض
         if (prop.purpose === "sale") saleCount++;
         if (prop.purpose === "rent") rentCount++;
-
-        // النوع
         typeCounts[prop.type] = (typeCounts[prop.type] || 0) + 1;
     });
 
@@ -35,14 +31,8 @@ export default async function AdminDashboard() {
         { name: "للإيجار", value: rentCount },
     ];
 
-    // تحويل أسماء الأنواع للعربي
     const typeTranslations: Record<string, string> = {
-        apartment: "شقة",
-        villa: "فيلا",
-        land: "أرض",
-        shop: "محل",
-        office: "مكتب",
-        chalet: "شاليه"
+        apartment: "شقة", villa: "فيلا", land: "أرض", shop: "محل", office: "مكتب", chalet: "شاليه"
     };
 
     const typeData = Object.keys(typeCounts).map(key => ({
@@ -51,58 +41,109 @@ export default async function AdminDashboard() {
     }));
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold">نظرة عامة</h1>
+        <div className="space-y-8 animate-fade-in-up">
 
-            {/* الكروت العلوية */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
+            {/* قسم الترحيب */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-card p-6 rounded-2xl border shadow-sm">
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground mb-1">أهلاً بك، عبدالرحمن 👋</h1>
+                    <p className="text-muted-foreground">إليك نظرة سريعة على ما يحدث في موقعك اليوم.</p>
+                </div>
+                <div className="flex gap-3 mt-4 md:mt-0">
+                    <Link href="/aqar-ax6admin/properties/new">
+                        <Button className="gap-2">
+                            <PlusCircle className="h-4 w-4" /> إضافة عقار
+                        </Button>
+                    </Link>
+                    <Link href="/">
+                        <Button variant="outline" className="gap-2">
+                            <Building2 className="h-4 w-4" /> عرض الموقع
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            {/* الكروت الإحصائية */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="bg-card hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">إجمالي العقارات</CardTitle>
-                        <Home className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي العقارات</CardTitle>
+                        <div className="p-2 bg-blue-500/10 rounded-full">
+                            <Home className="h-4 w-4 text-blue-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{propertiesCount || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">عقار مسجل</p>
+                        <div className="text-3xl font-bold">{propertiesCount || 0}</div>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-card hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">طلبات المعاينة</CardTitle>
-                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">طلبات المعاينة</CardTitle>
+                        <div className="p-2 bg-amber-500/10 rounded-full">
+                            <CalendarDays className="h-4 w-4 text-amber-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{leadsCount || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">طلب مستلم</p>
+                        <div className="text-3xl font-bold">{leadsCount || 0}</div>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-card hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">المستخدمين</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">المستخدمين</CardTitle>
+                        <div className="p-2 bg-green-500/10 rounded-full">
+                            <Users className="h-4 w-4 text-green-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{usersCount || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">مستخدم مسجل</p>
+                        <div className="text-3xl font-bold">{usersCount || 0}</div>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-card hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">زيارات اليوم</CardTitle>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">الزيارات</CardTitle>
+                        <div className="p-2 bg-purple-500/10 rounded-full">
+                            <Eye className="h-4 w-4 text-purple-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">0</div>
-                        <p className="text-xs text-muted-foreground mt-1">هنفعلها بعدين</p>
+                        <div className="text-3xl font-bold">0</div>
+                        <p className="text-xs text-muted-foreground mt-1">قريباً...</p>
                     </CardContent>
                 </Card>
             </div>
 
             {/* الرسوم البيانية */}
             <DashboardCharts purposeData={purposeData} typeData={typeData} />
+
+            {/* قسم النشاط الأخير (وهمي حالياً، هنفعله بعدين) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-card shadow-sm border-border">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">أحدث العقارات المضافة</CardTitle>
+                        <Link href="/aqar-ax6admin/properties" className="text-sm text-primary hover:underline flex items-center gap-1">
+                            عرض الكل <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground text-center py-8">هنا سيتم عرض أحدث العقارات</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-card shadow-sm border-border">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-lg">أحدث طلبات المعاينة</CardTitle>
+                        <Link href="/aqar-ax6admin/leads" className="text-sm text-primary hover:underline flex items-center gap-1">
+                            عرض الكل <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground text-center py-8">هنا سيتم عرض أحدث الطلبات</p>
+                    </CardContent>
+                </Card>
+            </div>
 
         </div>
     );

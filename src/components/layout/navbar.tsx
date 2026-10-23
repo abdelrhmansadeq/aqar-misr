@@ -25,6 +25,8 @@ export function Navbar() {
                     <Link href="/properties" className="transition-colors hover:text-primary">العقارات</Link>
                     <Link href="/compounds" className="transition-colors hover:text-primary">الكومباوندات</Link>
                     <Link href="/developers" className="transition-colors hover:text-primary">المطورين</Link>
+                    <Link href="/about" className="transition-colors hover:text-primary">من نحن</Link>
+                    <Link href="/contact" className="transition-colors hover:text-primary">اتصل بنا</Link>
                 </nav>
 
                 <div className="flex items-center gap-4">
@@ -37,7 +39,7 @@ export function Navbar() {
                         )}
                     </Link>
 
-                    <a href="https://wa.me/201068595864" target="_blank" rel="noopener noreferrer">
+                    <a href="https://wa.me/201012345678" target="_blank" rel="noopener noreferrer">
                         <Button className="gap-2">
                             <Phone className="h-4 w-4" /> تواصل معنا
                         </Button>

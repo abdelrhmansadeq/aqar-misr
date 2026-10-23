@@ -31,7 +31,6 @@ export function PropertyCard({ property }: { property: Property }) {
 
     const [activeIndex, setActiveIndex] = useState(0);
 
-    // دالة بتحدث النقط اللي تحت لما تسحب الصورة
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
         const scrollLeft = Math.abs(container.scrollLeft);
@@ -52,12 +51,12 @@ export function PropertyCard({ property }: { property: Property }) {
 
     return (
         <Link href={`/properties/${property.id}`}>
-            <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group h-full border-border bg-card flex flex-col">
+            {/* ضفنا هنا animate-fade-in-up للحركة */}
+            <Card className="animate-fade-in-up overflow-hidden hover:shadow-lg transition-all duration-300 group h-full border-border bg-card flex flex-col">
 
-                {/* الحاوية الرئيسية للصورة */}
                 <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
 
-                    {/* السلايدر الأصلي: Scroll Snap */}
+                    {/* السلايدر */}
                     <div
                         className="flex w-full h-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                         onScroll={handleScroll}

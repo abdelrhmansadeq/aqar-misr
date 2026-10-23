@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, Heart } from "lucide-react";
+import { Building2, Heart, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/components/providers/favorites-provider";
+import { usePathname } from "next/navigation"; // ضفنا ده
 
 export function Navbar() {
     const { favorites, isMounted } = useFavorites();
+    const pathname = usePathname(); // ضفنا ده
+
+    // لو إحنا في لوحة التحكم، متظهرش
+    if (pathname.startsWith("/aqar-ax6admin")) return null;
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 hidden md:block">
@@ -24,7 +29,6 @@ export function Navbar() {
                 </nav>
 
                 <div className="flex items-center gap-4">
-                    {/* أيقونة المفضلة */}
                     <Link href="/favorites" className="relative p-2 text-muted-foreground hover:text-primary transition-colors">
                         <Heart className="h-5 w-5" />
                         {isMounted && favorites.length > 0 && (
@@ -34,10 +38,11 @@ export function Navbar() {
                         )}
                     </Link>
 
-                    <Link href="/login">
-                        <Button variant="ghost" className="text-sm">تسجيل الدخول</Button>
-                    </Link>
-                    <Button className="text-sm">أضف عقارك</Button>
+                    <a href="https://wa.me/201012345678" target="_blank" rel="noopener noreferrer">
+                        <Button className="gap-2">
+                            <Phone className="h-4 w-4" /> تواصل معنا
+                        </Button>
+                    </a>
                 </div>
             </div>
         </header>

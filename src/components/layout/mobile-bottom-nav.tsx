@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Search, Heart, User } from "lucide-react";
+import { Home, Search, Heart, Phone } from "lucide-react";
 import { useFavorites } from "@/components/providers/favorites-provider";
+import { usePathname } from "next/navigation"; // ضفنا ده
 
 export function MobileBottomNav() {
     const { favorites, isMounted } = useFavorites();
+    const pathname = usePathname(); // ضفنا ده
+
+    // لو إحنا في لوحة التحكم، متظهرش
+    if (pathname.startsWith("/aqar-ax6admin")) return null;
 
     return (
         <nav className="fixed bottom-0 z-50 w-full border-t bg-background md:hidden pb-safe">
@@ -18,8 +23,6 @@ export function MobileBottomNav() {
                     <Search className="h-5 w-5" />
                     <span className="text-[10px] font-medium">البحث</span>
                 </Link>
-
-                {/* أيقونة المفضلة مع العداد */}
                 <Link href="/favorites" className="relative flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
                     <div className="relative">
                         <Heart className="h-5 w-5" />
@@ -31,11 +34,10 @@ export function MobileBottomNav() {
                     </div>
                     <span className="text-[10px] font-medium">المفضلة</span>
                 </Link>
-
-                <Link href="/dashboard" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
-                    <User className="h-5 w-5" />
-                    <span className="text-[10px] font-medium">حسابي</span>
-                </Link>
+                <a href="https://wa.me/201012345678" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                    <Phone className="h-5 w-5" />
+                    <span className="text-[10px] font-medium">تواصل</span>
+                </a>
             </div>
         </nav>
     );

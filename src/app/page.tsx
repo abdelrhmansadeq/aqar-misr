@@ -13,8 +13,7 @@ export default async function Home() {
 
   const { data: properties } = await supabase
       .from("properties")
-      .select("*")
-      .eq("status", "published")
+      .select("*, property_images (id, file_path, order)")      .eq("status", "published")
       .order("created_at", { ascending: false });
 
   return (

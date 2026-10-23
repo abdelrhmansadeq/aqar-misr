@@ -1,4 +1,13 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 export function Footer() {
+    const pathname = usePathname();
+
+    // لو إحنا في لوحة التحكم، متظهرش
+    if (pathname.startsWith("/aqar-ax6admin")) return null;
+
     return (
         <footer className="border-t bg-muted/30 mt-auto mb-16 md:mb-0">
             <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">

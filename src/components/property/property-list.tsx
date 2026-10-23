@@ -1,49 +1,111 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PropertyCard } from "@/components/property/property-card";
 import { PropertyFilters } from "@/components/property/property-filters";
 import { PropertyMap } from "@/components/property/property-map";
 import { Property } from "@/types/property";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, Map as MapIcon } from "lucide-react";
+import { LayoutGrid, Map as MapIcon, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PropertySkeleton } from "@/components/property/property-skeleton";
+
+const LIMIT = 10; // 10 عقارات في المرة
 
 export default function PropertyList() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
     const [viewMode, setViewMode] = useState<"list" | "map">("list");
+
     const supabase = createClient();
     const searchParams = useSearchParams();
 
-    useEffect(() => {
-        async function fetchProperties() {
+    // ده العنصر اللي بنحط تحته عشان نعرف إن المستخدم وصل لآخر الصفحة
+    const observerTarget = useRef(null);
+
+    const fetchProperties = useCallback(async (pageNumber: number, isNewSearch = false) => {
+        if (isNewSearch) {
             setLoading(true);
-
-            let query = supabase.from("properties").select("*").eq("status", "published");
-
-            const purpose = searchParams.get("purpose");
-            const type = searchParams.get("type");
-            const city = searchParams.get("city");
-            const minPrice = searchParams.get("minPrice");
-            const maxPrice = searchParams.get("maxPrice");
-
-            if (purpose && purpose !== "all") query = query.eq("purpose", purpose);
-            if (type && type !== "all") query = query.eq("type", type);
-            if (city) query = query.ilike("city", `%${city}%`);
-            if (minPrice) query = query.gte("price", Number(minPrice));
-            if (maxPrice) query = query.lte("price", Number(maxPrice));
-
-            const { data } = await query.order("created_at", { ascending: false });
-            if (data) setProperties(data as Property[]);
-            setLoading(false);
+            setProperties([]);
+            setPage(0);
+            setHasMore(true);
+        } else {
+            setLoadingMore(true);
         }
 
-        // void عشان نمنع تحذير الـ Promise
-        void fetchProperties();
+        const from = pageNumber * LIMIT;
+        const to = from + LIMIT - 1;
+
+        let query = supabase.from("properties").select("*, property_images (id, file_path, order)").eq("status", "published");
+
+        const purpose = searchParams.get("purpose");
+        const type = searchParams.get("type");
+        const city = searchParams.get("city");
+        const minPrice = searchParams.get("minPrice");
+        const maxPrice = searchParams.get("maxPrice");
+
+        if (purpose && purpose !== "all") query = query.eq("purpose", purpose);
+        if (type && type !== "all") query = query.eq("type", type);
+        if (city) query = query.ilike("city", `%${city}%`);
+        if (minPrice) query = query.gte("price", Number(minPrice));
+        if (maxPrice) query = query.lte("price", Number(maxPrice));
+
+        const { data } = await query
+            .order("created_at", { ascending: false })
+            .range(from, to);
+
+        if (data) {
+            if (isNewSearch) {
+                setProperties(data as Property[]);
+            } else {
+                setProperties((prev) => [...prev, ...(data as Property[])]);
+            }
+
+            if (data.length < LIMIT) {
+                setHasMore(false);
+            }
+        }
+
+        setLoading(false);
+        setLoadingMore(false);
     }, [supabase, searchParams]);
+
+    // أول ما الصفحة تفتح أو الفلاتر تتغير
+    // أول ما الصفحة تفتح أو الفلاتر تتغير
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void fetchProperties(0, true);
+    }, [fetchProperties]);
+
+    // اللوجيك بتاع التصفح اللانهائي (Intersection Observer)
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                // لو الحساس ظهر في الشاشة، وفيه داتا تانية، ومفيش لودينج شغال
+                if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+                    const nextPage = page + 1;
+                    setPage(nextPage);
+                    void fetchProperties(nextPage, false);
+                }
+            },
+            { threshold: 1.0 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, loading, loadingMore, page, fetchProperties]);
 
     return (
         <div className="flex flex-col md:flex-row gap-8">
@@ -81,12 +143,27 @@ export default function PropertyList() {
                     </div>
                 ) : viewMode === "map" ? (
                     <PropertyMap properties={properties} />
-                ) : properties && properties.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {properties.map((property) => (
-                            <PropertyCard key={property.id} property={property} />
-                        ))}
-                    </div>
+                ) : properties.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {properties.map((property) => (
+                                <PropertyCard key={property.id} property={property} />
+                            ))}
+                        </div>
+
+                        {/* اللودينج تحت خالص */}
+                        <div ref={observerTarget} className="mt-10 flex justify-center py-4">
+                            {loadingMore && (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                    <span>جاري تحميل المزيد...</span>
+                                </div>
+                            )}
+                            {!hasMore && properties.length > 0 && (
+                                <p className="text-muted-foreground text-sm">لقد وصلت لنهاية النتائج.</p>
+                            )}
+                        </div>
+                    </>
                 ) : (
                     <div className="text-center py-20 bg-muted/20 rounded-xl">
                         <h3 className="text-xl font-bold mb-2">لا توجد نتائج مطابقة</h3>

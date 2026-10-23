@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import imageCompression from "browser-image-compression";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,88 +12,146 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { Property } from "@/types/property";
+import { X, UploadCloud, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// تعريف نوع الصورة جوه الفورم عشان نمنع any
+type FormImage = { id?: string; url: string; file?: File };
 
 export function PropertyForm({ initialData }: { initialData?: Property }) {
     const router = useRouter();
     const supabase = createClient();
     const [loading, setLoading] = useState(false);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.image_url || null);
+
+    // 1. بنجهز الصور القديمة مباشرة وقت فتح الصفحة (بدون useEffect)
+    const [images, setImages] = useState<FormImage[]>(() => {
+        if (!initialData) return [];
+
+        const existingImages: FormImage[] = [];
+        if (initialData.images && initialData.images.length > 0) {
+            // بنرتب الصور ونجهزها
+            [...initialData.images]
+                .sort((a, b) => a.order - b.order)
+                .forEach((img) => {
+                    existingImages.push({ id: img.id, url: img.file_path });
+                });
+        } else if (initialData.image_url) {
+            existingImages.push({ url: initialData.image_url });
+        }
+        return existingImages;
+    });
+
+    // 2. بنحدد مين الغلاف وقت فتح الصفحة
+    const [coverIndex, setCoverIndex] = useState<number>(() => {
+        if (!initialData || !initialData.image_url) return 0;
+
+        if (initialData.images && initialData.images.length > 0) {
+            const idx = initialData.images.findIndex((img) => img.file_path === initialData.image_url);
+            return idx !== -1 ? idx : 0;
+        }
+        return 0;
+    });
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            const newImages = files.map(file => ({
+                url: URL.createObjectURL(file),
+                file: file
+            }));
+            setImages((prev) => [...prev, ...newImages]);
         }
+    };
+
+    const removeImage = (index: number) => {
+        setImages((prev) => prev.filter((_, i) => i !== index));
+        if (coverIndex === index) setCoverIndex(0);
+        else if (coverIndex > index) setCoverIndex(coverIndex - 1);
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-
         const formData = new FormData(e.currentTarget);
-        let imageUrl = initialData?.image_url || "";
 
         try {
-            // 1. رفع الصورة لو المستخدم اختار صورة جديدة
-            if (imageFile) {
-                const fileExt = imageFile.name.split('.').pop();
-                const fileName = `${Math.random()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from("property-images")
-                    .upload(fileName, imageFile);
+            const finalImageUrls: FormImage[] = [];
 
-                if (uploadError) throw uploadError;
+            // 1. رفع الصور الجديدة فقط
+            for (const img of images) {
+                if (img.file) {
+                    const compressedFile = await imageCompression(img.file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
+                    const fileExt = compressedFile.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from("property-images")
-                    .getPublicUrl(fileName);
+                    const { error: uploadError } = await supabase.storage.from("property-images").upload(fileName, compressedFile);
+                    // تحويل الخطأ لنص عشان نرضي ESLint
+                    if (uploadError) throw new Error(uploadError.message);
 
-                imageUrl = publicUrl;
+                    const { data: { publicUrl } } = supabase.storage.from("property-images").getPublicUrl(fileName);
+                    finalImageUrls.push({ url: publicUrl });
+                } else {
+                    // صورة قديمة، بنحافظ عليها
+                    finalImageUrls.push({ id: img.id, url: img.url });
+                }
             }
 
-            // 2. تجهيز البيانات
+            const coverUrl = finalImageUrls[coverIndex]?.url || initialData?.image_url || "";
+
             const propertyData = {
-                title: formData.get("title"),
-                description: formData.get("description"),
-                purpose: formData.get("purpose"),
-                type: formData.get("type"),
+                title: formData.get("title") as string,
+                description: formData.get("description") as string,
+                purpose: formData.get("purpose") as string,
+                type: formData.get("type") as string,
                 price: Number(formData.get("price")),
                 area_m2: Number(formData.get("area_m2")),
                 bedrooms: Number(formData.get("bedrooms")),
                 bathrooms: Number(formData.get("bathrooms")),
-                governorate: formData.get("governorate"),
-                city: formData.get("city"),
-                district: formData.get("district"),
-                image_url: imageUrl,
+                governorate: formData.get("governorate") as string,
+                city: formData.get("city") as string,
+                district: formData.get("district") as string,
+                image_url: coverUrl,
                 status: "published",
                 verified: true,
             };
 
-            // 3. لو فيه بيانات قديمة يبقى ده تعديل، لو مفيش يبقى ده إضافة جديدة
+            let propertyId = initialData?.id;
+
             if (initialData) {
-                const { error: dbError } = await supabase
-                    .from("properties")
-                    .update(propertyData)
-                    .eq("id", initialData.id);
-                if (dbError) throw dbError;
+                const { error: dbError } = await supabase.from("properties").update(propertyData).eq("id", initialData.id);
+                if (dbError) throw new Error(dbError.message);
             } else {
-                const { error: dbError } = await supabase
-                    .from("properties")
-                    .insert({
-                        ...propertyData,
-                        slug: `عقار-${Math.floor(Math.random() * 10000)}`,
-                        advertiser_id: (await supabase.auth.getUser()).data.user?.id
-                    });
-                if (dbError) throw dbError;
+                const { data: newProp, error: dbError } = await supabase.from("properties").insert({
+                    ...propertyData,
+                    slug: `عقار-${Math.floor(Math.random() * 10000)}`,
+                    advertiser_id: (await supabase.auth.getUser()).data.user?.id
+                }).select("id").single();
+                if (dbError) throw new Error(dbError.message);
+                propertyId = newProp.id;
+            }
+
+            // 2. حفظ/تحديث جدول الصور
+            if (propertyId) {
+                await supabase.from("property_images").delete().eq("property_id", propertyId);
+
+                if (finalImageUrls.length > 0) {
+                    const imageRecords = finalImageUrls.map((img, index) => ({
+                        property_id: propertyId,
+                        file_path: img.url,
+                        order: index,
+                        is_cover: index === coverIndex,
+                    }));
+                    const { error: imgError } = await supabase.from("property_images").insert(imageRecords);
+                    if (imgError) throw new Error(imgError.message);
+                }
             }
 
             router.push("/aqar-ax6admin/properties");
             router.refresh();
-
-        } catch (error: any) {
-            alert("حدث خطأ: " + error.message);
+        } catch (error: unknown) {
+            // تحويل الخطأ لنص عشان نرضي ESLint
+            const message = error instanceof Error ? error.message : "حدث خطأ غير معروف";
+            alert("حدث خطأ: " + message);
         } finally {
             setLoading(false);
         }
@@ -103,42 +162,11 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
             <Card>
                 <CardContent className="p-6 space-y-4">
                     <h2 className="text-lg font-semibold border-b pb-2">المعلومات الأساسية</h2>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>عنوان العقار</Label>
-                            <Input name="title" defaultValue={initialData?.title} required placeholder="مثال: شقة سوبر لوكس في التجمع" />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>الغرض</Label>
-                            <Select name="purpose" defaultValue={initialData?.purpose || "sale"} required>
-                                <SelectTrigger><SelectValue placeholder="اختر الغرض" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="sale">للبيع</SelectItem>
-                                    <SelectItem value="rent">للإيجار</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>نوع العقار</Label>
-                            <Select name="type" defaultValue={initialData?.type || "apartment"} required>
-                                <SelectTrigger><SelectValue placeholder="اختر النوع" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="apartment">شقة</SelectItem>
-                                    <SelectItem value="villa">فيلا</SelectItem>
-                                    <SelectItem value="land">أرض</SelectItem>
-                                    <SelectItem value="shop">محل</SelectItem>
-                                    <SelectItem value="office">مكتب</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>السعر (جنيه مصري)</Label>
-                            <Input name="price" type="number" defaultValue={initialData?.price} required placeholder="مثال: 2500000" />
-                        </div>
+                        <div className="space-y-2"><Label>عنوان العقار</Label><Input name="title" defaultValue={initialData?.title} required /></div>
+                        <div className="space-y-2"><Label>الغرض</Label><Select name="purpose" defaultValue={initialData?.purpose || "sale"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sale">للبيع</SelectItem><SelectItem value="rent">للإيجار</SelectItem></SelectContent></Select></div>
+                        <div className="space-y-2"><Label>نوع العقار</Label><Select name="type" defaultValue={initialData?.type || "apartment"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="apartment">شقة</SelectItem><SelectItem value="villa">فيلا</SelectItem><SelectItem value="land">أرض</SelectItem><SelectItem value="office">مكتب</SelectItem></SelectContent></Select></div>
+                        <div className="space-y-2"><Label>السعر (جنيه)</Label><Input name="price" type="number" defaultValue={initialData?.price} required /></div>
                     </div>
                 </CardContent>
             </Card>
@@ -146,63 +174,55 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
             <Card>
                 <CardContent className="p-6 space-y-4">
                     <h2 className="text-lg font-semibold border-b pb-2">الموقع والتفاصيل</h2>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label>المحافظة</Label>
-                            <Input name="governorate" defaultValue={initialData?.district ? "cairo" : ""} required placeholder="القاهرة" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>المدينة/المنطقة</Label>
-                            <Input name="city" defaultValue={initialData?.city} required placeholder="التجمع الخامس" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>الحي/الشارع</Label>
-                            <Input name="district" defaultValue={initialData?.district} required placeholder="الحي الأول" />
-                        </div>
+                        <div className="space-y-2"><Label>المحافظة</Label><Input name="governorate" defaultValue={initialData?.governorate || "cairo"} required /></div>
+                        <div className="space-y-2"><Label>المدينة/المنطقة</Label><Input name="city" defaultValue={initialData?.city} required /></div>
+                        <div className="space-y-2"><Label>الحي/الشارع</Label><Input name="district" defaultValue={initialData?.district} required /></div>
                     </div>
-
                     <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label>المساحة (م²)</Label>
-                            <Input name="area_m2" type="number" defaultValue={initialData?.area_m2} required placeholder="150" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>غرف النوم</Label>
-                            <Input name="bedrooms" type="number" defaultValue={initialData?.bedrooms} required placeholder="3" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>الحمامات</Label>
-                            <Input name="bathrooms" type="number" defaultValue={initialData?.bathrooms} required placeholder="2" />
-                        </div>
+                        <div className="space-y-2"><Label>المساحة (م²)</Label><Input name="area_m2" type="number" defaultValue={initialData?.area_m2} required /></div>
+                        <div className="space-y-2"><Label>غرف النوم</Label><Input name="bedrooms" type="number" defaultValue={initialData?.bedrooms} required /></div>
+                        <div className="space-y-2"><Label>الحمامات</Label><Input name="bathrooms" type="number" defaultValue={initialData?.bathrooms} required /></div>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label>الوصف</Label>
-                        <Textarea name="description" defaultValue={initialData?.description} required placeholder="اكتب وصف تفصيلي للعقار..." className="min-h-[120px]" />
-                    </div>
+                    <div className="space-y-2"><Label>الوصف</Label><Textarea name="description" defaultValue={initialData?.description} required className="min-h-32" /></div>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardContent className="p-6 space-y-4">
-                    <h2 className="text-lg font-semibold border-b pb-2">صورة العقار</h2>
-                    <div className="flex flex-col md:flex-row gap-6 items-center">
-                        <Input type="file" accept="image/*" onChange={handleImageChange} className="cursor-pointer" />
-                        {previewUrl && (
-                            <div className="relative w-full md:w-48 aspect-video rounded-lg overflow-hidden border">
-                                <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                            </div>
-                        )}
-                    </div>
+                    <h2 className="text-lg font-semibold border-b pb-2">صور العقار (اختر صورة الغلاف)</h2>
+
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">اضغط لاختيار الصور (يمكنك إضافة صور جديدة)</p>
+                        </div>
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
+                    </label>
+
+                    {images.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            {images.map((img, index) => (
+                                <div key={index} className={cn("relative aspect-video rounded-lg overflow-hidden border group cursor-pointer", coverIndex === index ? "ring-4 ring-primary ring-offset-2" : "")} onClick={() => setCoverIndex(index)}>
+                                    <Image src={img.url} alt="Preview" fill className="object-cover" />
+                                    {coverIndex === index && (
+                                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 text-xs rounded-md flex items-center gap-1">
+                                            <Star className="h-3 w-3 fill-current" /> غلاف
+                                        </div>
+                                    )}
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); removeImage(index); }} className="absolute bottom-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
             <div className="flex justify-end gap-4">
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>إلغاء</Button>
-                <Button type="submit" disabled={loading} className="px-8">
-                    {loading ? "جاري الحفظ..." : (initialData ? "حفظ التعديلات" : "حفظ العقار")}
-                </Button>
+                <Button type="submit" disabled={loading} className="px-8">{loading ? "جاري الحفظ..." : (initialData ? "حفظ التعديلات" : "حفظ العقار")}</Button>
             </div>
         </form>
     );

@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { Home, Search, Heart, Phone } from "lucide-react";
 import { useFavorites } from "@/components/providers/favorites-provider";
-import { usePathname } from "next/navigation"; // ضفنا ده
+import { usePathname } from "next/navigation";
 
 export function MobileBottomNav() {
     const { favorites, isMounted } = useFavorites();
-    const pathname = usePathname(); // ضفنا ده
+    const pathname = usePathname();
 
-    // لو إحنا في لوحة التحكم، متظهرش
     if (pathname.startsWith("/aqar-ax6admin")) return null;
 
     return (
@@ -34,7 +33,7 @@ export function MobileBottomNav() {
                     </div>
                     <span className="text-[10px] font-medium">المفضلة</span>
                 </Link>
-                <a href="https://wa.me/201012345678" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+                <a href="https://wa.me/01068595864" target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
                     <Phone className="h-5 w-5" />
                     <span className="text-[10px] font-medium">تواصل</span>
                 </a>

@@ -9,6 +9,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { FavoritesProvider } from "@/components/providers/favorites-provider";
 import { CompareProvider } from "@/components/providers/compare-provider";
 import { CompareBar } from "@/components/property/compare-bar";
+import { Toaster } from "sonner";
 
 const cairo = Cairo({
     subsets: ["arabic", "latin"],
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
     openGraph: {
         title: "عقار مصر | بوابتك لعالم العقارات",
         description: "تصفح آلاف العقارات الموثقة للبيع والإيجار في مصر.",
-        url: "https://aqar-misr-six.vercel.app", // اللينك بتاعك
+        url: "https://aqar-misr-six.vercel.app",
         siteName: "عقار مصر",
         locale: "ar_EG",
         type: "website",
@@ -54,7 +55,6 @@ export default function RootLayout({
             disableTransitionOnChange
         >
             <NuqsAdapter>
-                {/* الترتيب هنا مهم جداً عشان الأخطاء تختفي */}
                 <FavoritesProvider>
                     <CompareProvider>
                         <Navbar />
@@ -64,6 +64,8 @@ export default function RootLayout({
                         <Footer />
                         <CompareBar />
                         <MobileBottomNav />
+                        {/* الإشعارات هنا عشان تشتغل في كل الموقع */}
+                        <Toaster position="bottom-center" richColors />
                     </CompareProvider>
                 </FavoritesProvider>
             </NuqsAdapter>

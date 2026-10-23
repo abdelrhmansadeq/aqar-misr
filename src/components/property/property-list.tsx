@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PropertyCard } from "@/components/property/property-card";
 import { PropertyFilters } from "@/components/property/property-filters";
@@ -11,7 +11,7 @@ import { LayoutGrid, Map as MapIcon, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { PropertySkeleton } from "@/components/property/property-skeleton";
 
-const LIMIT = 10; // 10 عقارات في المرة
+const LIMIT = 10;
 
 export default function PropertyList() {
     const [properties, setProperties] = useState<Property[]>([]);
@@ -21,10 +21,10 @@ export default function PropertyList() {
     const [hasMore, setHasMore] = useState(true);
     const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
-    const supabase = createClient();
+    // التعديل 1: استخدام useMemo عشان نعمل الكلاينت مرة واحدة بس وميتعملش مع كل ريفريش
+    const supabase = useMemo(() => createClient(), []);
     const searchParams = useSearchParams();
 
-    // ده العنصر اللي بنحط تحته عشان نعرف إن المستخدم وصل لآخر الصفحة
     const observerTarget = useRef(null);
 
     const fetchProperties = useCallback(async (pageNumber: number, isNewSearch = false) => {
@@ -54,15 +54,20 @@ export default function PropertyList() {
         if (minPrice) query = query.gte("price", Number(minPrice));
         if (maxPrice) query = query.lte("price", Number(maxPrice));
 
-        const { data } = await query
+        const { data, error } = await query
             .order("created_at", { ascending: false })
             .range(from, to);
 
-        if (data) {
+        if (!error && data) {
             if (isNewSearch) {
                 setProperties(data as Property[]);
             } else {
                 setProperties((prev) => [...prev, ...(data as Property[])]);
+            }
+
+            // التعديل 2: بنزود رقم الصفحة بس لو الداتا رجعت بنجاح
+            if (!isNewSearch) {
+                setPage(pageNumber);
             }
 
             if (data.length < LIMIT) {
@@ -74,22 +79,16 @@ export default function PropertyList() {
         setLoadingMore(false);
     }, [supabase, searchParams]);
 
-    // أول ما الصفحة تفتح أو الفلاتر تتغير
-    // أول ما الصفحة تفتح أو الفلاتر تتغير
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchProperties(0, true);
     }, [fetchProperties]);
 
-    // اللوجيك بتاع التصفح اللانهائي (Intersection Observer)
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                // لو الحساس ظهر في الشاشة، وفيه داتا تانية، ومفيش لودينج شغال
+                // التعديل 3: بنبعت الرقم اللي بعده بس ومش بنحدث الـ state هنا
                 if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-                    const nextPage = page + 1;
-                    setPage(nextPage);
-                    void fetchProperties(nextPage, false);
+                    void fetchProperties(page + 1, false);
                 }
             },
             { threshold: 1.0 }
@@ -151,7 +150,6 @@ export default function PropertyList() {
                             ))}
                         </div>
 
-                        {/* اللودينج تحت خالص */}
                         <div ref={observerTarget} className="mt-10 flex justify-center py-4">
                             {loadingMore && (
                                 <div className="flex items-center gap-2 text-muted-foreground">

@@ -10,8 +10,7 @@ import { useFavorites } from "@/components/providers/favorites-provider";
 import { useCompare } from "@/components/providers/compare-provider";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/utils/time";
-import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export function PropertyCard({ property }: { property: Property }) {
     const { toggleFavorite, isFavorite } = useFavorites();
@@ -30,16 +29,18 @@ export function PropertyCard({ property }: { property: Property }) {
     if (propertyImages.length === 0 && property.image_url) propertyImages.push(property.image_url);
     if (propertyImages.length === 0) propertyImages.push("/placeholder.jpg");
 
-    const [api, setApi] = useState<CarouselApi>();
-    const [current, setCurrent] = useState(0);
+    const [activeIndex, setActiveIndex] = useState(0);
 
-    useEffect(() => {
-        if (!api) return;
-        setCurrent(api.selectedScrollSnap());
-        api.on("select", () => {
-            setCurrent(api.selectedScrollSnap());
-        });
-    }, [api]);
+    // دالة بتحدث النقط اللي تحت لما تسحب الصورة
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const container = e.currentTarget;
+        const scrollLeft = Math.abs(container.scrollLeft);
+        const width = container.clientWidth;
+        if (width > 0) {
+            const index = Math.round(scrollLeft / width);
+            setActiveIndex(index);
+        }
+    };
 
     const pricePerMeter = Math.round(property.price / property.area_m2);
 
@@ -53,27 +54,26 @@ export function PropertyCard({ property }: { property: Property }) {
         <Link href={`/properties/${property.id}`}>
             <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group h-full border-border bg-card flex flex-col">
 
-                {/* حاوية ثابتة الارتفاع */}
+                {/* الحاوية الرئيسية للصورة */}
                 <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
 
-                    <Carousel setApi={setApi} className="w-full h-full">
-                        {/* ملاحظة: لغينا الهوامش الافتراضية ml-0 و pl-0 */}
-                        <CarouselContent className="h-full ml-0">
-                            {propertyImages.map((img, index) => (
-                                <CarouselItem key={index} className="h-full pl-0 relative">
-                                    {/* السر هنا: استخدمنا width و height بدل fill، وخليها w-full h-full */}
-                                    <Image
-                                        src={img}
-                                        alt={`${property.title} - ${index + 1}`}
-                                        width={800}
-                                        height={600}
-                                        className="w-full h-full object-cover"
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                    />
-                                </CarouselItem>
-                            ))}
-                        </CarouselContent>
-                    </Carousel>
+                    {/* السلايدر الأصلي: Scroll Snap */}
+                    <div
+                        className="flex w-full h-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                        onScroll={handleScroll}
+                    >
+                        {propertyImages.map((img, index) => (
+                            <div key={index} className="relative w-full h-full flex-shrink-0 snap-center">
+                                <Image
+                                    src={img}
+                                    alt={`${property.title} - ${index + 1}`}
+                                    fill
+                                    className="object-cover"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                />
+                            </div>
+                        ))}
+                    </div>
 
                     {/* النقط (Dots) */}
                     {propertyImages.length > 1 && (
@@ -83,7 +83,7 @@ export function PropertyCard({ property }: { property: Property }) {
                                     key={index}
                                     className={cn(
                                         "h-1.5 rounded-full transition-all duration-300 shadow-sm",
-                                        current === index ? "w-5 bg-white" : "w-1.5 bg-white/60"
+                                        activeIndex === index ? "w-5 bg-white" : "w-1.5 bg-white/60"
                                     )}
                                 />
                             ))}

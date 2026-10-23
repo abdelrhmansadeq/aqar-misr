@@ -14,6 +14,7 @@ import Image from "next/image";
 import { Property } from "@/types/property";
 import { X, UploadCloud, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner"; // ضفنا ده
 
 type FormImage = { id?: string; url: string; file?: File };
 
@@ -22,16 +23,13 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
     const supabase = createClient();
     const [loading, setLoading] = useState(false);
 
-    // 1. بنجهز الصور القديمة مباشرة وقت فتح الصفحة
     const [images, setImages] = useState<FormImage[]>(() => {
         if (!initialData) return [];
-
         const existingImages: FormImage[] = [];
-        // التعديل هنا: استخدام property_images
         if (initialData.property_images && initialData.property_images.length > 0) {
             [...initialData.property_images]
                 .sort((a, b) => a.order - b.order)
-                .forEach((img) => { // شيلنا any عشان نرضي ESLint
+                .forEach((img) => {
                     existingImages.push({ id: img.id, url: img.file_path });
                 });
         } else if (initialData.image_url) {
@@ -40,11 +38,8 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
         return existingImages;
     });
 
-    // 2. بنحدد مين الغلاف وقت فتح الصفحة
     const [coverIndex, setCoverIndex] = useState<number>(() => {
         if (!initialData || !initialData.image_url) return 0;
-
-        // التعديل هنا: استخدام property_images
         if (initialData.property_images && initialData.property_images.length > 0) {
             const idx = initialData.property_images.findIndex((img) => img.file_path === initialData.image_url);
             return idx !== -1 ? idx : 0;
@@ -55,10 +50,7 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
-            const newImages = files.map(file => ({
-                url: URL.createObjectURL(file),
-                file: file
-            }));
+            const newImages = files.map(file => ({ url: URL.createObjectURL(file), file }));
             setImages((prev) => [...prev, ...newImages]);
         }
     };
@@ -77,7 +69,6 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
         try {
             const finalImageUrls: FormImage[] = [];
 
-            // 1. رفع الصور الجديدة فقط
             for (const img of images) {
                 if (img.file) {
                     const compressedFile = await imageCompression(img.file, { maxSizeMB: 0.5, maxWidthOrHeight: 1920, useWebWorker: true });
@@ -128,7 +119,6 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 propertyId = newProp.id;
             }
 
-            // 2. حفظ/تحديث جدول الصور
             if (propertyId) {
                 await supabase.from("property_images").delete().eq("property_id", propertyId);
 
@@ -144,11 +134,12 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 }
             }
 
+            toast.success(initialData ? "تم تعديل العقار بنجاح" : "تم إضافة العقار بنجاح"); // الإشعار الجديد
             router.push("/aqar-ax6admin/properties");
             router.refresh();
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "حدث خطأ غير معروف";
-            alert("حدث خطأ: " + message);
+            toast.error("حدث خطأ: " + message); // الإشعار الجديد
         } finally {
             setLoading(false);
         }

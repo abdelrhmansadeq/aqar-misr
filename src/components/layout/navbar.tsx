@@ -4,13 +4,12 @@ import Link from "next/link";
 import { Building2, Heart, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/components/providers/favorites-provider";
-import { usePathname } from "next/navigation"; // ضفنا ده
+import { usePathname } from "next/navigation";
 
 export function Navbar() {
     const { favorites, isMounted } = useFavorites();
-    const pathname = usePathname(); // ضفنا ده
+    const pathname = usePathname();
 
-    // لو إحنا في لوحة التحكم، متظهرش
     if (pathname.startsWith("/aqar-ax6admin")) return null;
 
     return (
@@ -38,7 +37,7 @@ export function Navbar() {
                         )}
                     </Link>
 
-                    <a href="https://wa.me/201012345678" target="_blank" rel="noopener noreferrer">
+                    <a href="https://wa.me/201068595864" target="_blank" rel="noopener noreferrer">
                         <Button className="gap-2">
                             <Phone className="h-4 w-4" /> تواصل معنا
                         </Button>

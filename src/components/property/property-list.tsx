@@ -9,6 +9,7 @@ import { Property } from "@/types/property";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Map as MapIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { PropertySkeleton } from "@/components/property/property-skeleton";
 
 export default function PropertyList() {
     const [properties, setProperties] = useState<Property[]>([]);
@@ -21,7 +22,6 @@ export default function PropertyList() {
         async function fetchProperties() {
             setLoading(true);
 
-            // قراءة القيم من useSearchParams بشكل مباشر
             let query = supabase.from("properties").select("*").eq("status", "published");
 
             const purpose = searchParams.get("purpose");
@@ -41,8 +41,9 @@ export default function PropertyList() {
             setLoading(false);
         }
 
-        fetchProperties();
-    }, [supabase, searchParams]); // تحديث البيانات عند تغير الفلاتر
+        // void عشان نمنع تحذير الـ Promise
+        void fetchProperties();
+    }, [supabase, searchParams]);
 
     return (
         <div className="flex flex-col md:flex-row gap-8">
@@ -73,7 +74,11 @@ export default function PropertyList() {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-20">جاري التحميل...</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <PropertySkeleton key={i} />
+                        ))}
+                    </div>
                 ) : viewMode === "map" ? (
                     <PropertyMap properties={properties} />
                 ) : properties && properties.length > 0 ? (

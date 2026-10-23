@@ -10,6 +10,7 @@ import { FavoritesProvider } from "@/components/providers/favorites-provider";
 import { CompareProvider } from "@/components/providers/compare-provider";
 import { CompareBar } from "@/components/property/compare-bar";
 import { Toaster } from "sonner";
+import { WhatsAppFloat } from "@/components/layout/whatsapp-float"; // ضفنا الاستيراد ده
 
 const cairo = Cairo({
     subsets: ["arabic", "latin"],
@@ -64,8 +65,11 @@ export default function RootLayout({
                         <Footer />
                         <CompareBar />
                         <MobileBottomNav />
-                        {/* الإشعارات هنا عشان تشتغل في كل الموقع */}
                         <Toaster position="bottom-center" richColors />
+
+                        {/* الزرار العائم هنا */}
+                        <WhatsAppFloat />
+
                     </CompareProvider>
                 </FavoritesProvider>
             </NuqsAdapter>

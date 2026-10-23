@@ -15,7 +15,6 @@ import { Property } from "@/types/property";
 import { X, UploadCloud, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// تعريف نوع الصورة جوه الفورم عشان نمنع any
 type FormImage = { id?: string; url: string; file?: File };
 
 export function PropertyForm({ initialData }: { initialData?: Property }) {
@@ -23,16 +22,16 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
     const supabase = createClient();
     const [loading, setLoading] = useState(false);
 
-    // 1. بنجهز الصور القديمة مباشرة وقت فتح الصفحة (بدون useEffect)
+    // 1. بنجهز الصور القديمة مباشرة وقت فتح الصفحة
     const [images, setImages] = useState<FormImage[]>(() => {
         if (!initialData) return [];
 
         const existingImages: FormImage[] = [];
-        if (initialData.images && initialData.images.length > 0) {
-            // بنرتب الصور ونجهزها
-            [...initialData.images]
+        // التعديل هنا: استخدام property_images
+        if (initialData.property_images && initialData.property_images.length > 0) {
+            [...initialData.property_images]
                 .sort((a, b) => a.order - b.order)
-                .forEach((img) => {
+                .forEach((img) => { // شيلنا any عشان نرضي ESLint
                     existingImages.push({ id: img.id, url: img.file_path });
                 });
         } else if (initialData.image_url) {
@@ -45,8 +44,9 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
     const [coverIndex, setCoverIndex] = useState<number>(() => {
         if (!initialData || !initialData.image_url) return 0;
 
-        if (initialData.images && initialData.images.length > 0) {
-            const idx = initialData.images.findIndex((img) => img.file_path === initialData.image_url);
+        // التعديل هنا: استخدام property_images
+        if (initialData.property_images && initialData.property_images.length > 0) {
+            const idx = initialData.property_images.findIndex((img) => img.file_path === initialData.image_url);
             return idx !== -1 ? idx : 0;
         }
         return 0;
@@ -85,13 +85,11 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                     const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
 
                     const { error: uploadError } = await supabase.storage.from("property-images").upload(fileName, compressedFile);
-                    // تحويل الخطأ لنص عشان نرضي ESLint
                     if (uploadError) throw new Error(uploadError.message);
 
                     const { data: { publicUrl } } = supabase.storage.from("property-images").getPublicUrl(fileName);
                     finalImageUrls.push({ url: publicUrl });
                 } else {
-                    // صورة قديمة، بنحافظ عليها
                     finalImageUrls.push({ id: img.id, url: img.url });
                 }
             }
@@ -149,7 +147,6 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
             router.push("/aqar-ax6admin/properties");
             router.refresh();
         } catch (error: unknown) {
-            // تحويل الخطأ لنص عشان نرضي ESLint
             const message = error instanceof Error ? error.message : "حدث خطأ غير معروف";
             alert("حدث خطأ: " + message);
         } finally {

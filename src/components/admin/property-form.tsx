@@ -15,7 +15,8 @@ import { Property } from "@/types/property";
 import { X, UploadCloud, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { generateSlug } from "@/lib/utils/slug"; // ضفنا الاستيراد ده
+import { generateSlug } from "@/lib/utils/slug";
+import { validateImageMagicBytes } from "@/lib/utils/validate-image"; // استيراد دالة التحقق
 
 type FormImage = { id?: string; url: string; file?: File };
 
@@ -48,10 +49,32 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
         return 0;
     });
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // ✅ تعديل: إضافة فحص Magic Bytes هنا
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        if (files.length > 0) {
-            const newImages = files.map(file => ({ url: URL.createObjectURL(file), file }));
+        if (files.length === 0) return;
+
+        const validFiles: File[] = [];
+        const rejectedFiles: string[] = [];
+
+        // نفحص كل ملف قبل ما نضيفه
+        for (const file of files) {
+            const { valid } = await validateImageMagicBytes(file);
+            if (valid) {
+                validFiles.push(file);
+            } else {
+                rejectedFiles.push(file.name);
+            }
+        }
+
+        // لو فيه ملفات مرفوضة، نظهر إشعار
+        if (rejectedFiles.length > 0) {
+            toast.error(`تم رفض الملفات التالية لأنها ليست صوراً حقيقية: ${rejectedFiles.join(', ')}`);
+        }
+
+        // نضيف الملفات الصالحة فقط
+        if (validFiles.length > 0) {
+            const newImages = validFiles.map(file => ({ url: URL.createObjectURL(file), file }));
             setImages((prev) => [...prev, ...newImages]);
         }
     };
@@ -117,12 +140,11 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 const { error: dbError } = await supabase.from("properties").update(propertyData).eq("id", initialData.id);
                 if (dbError) throw new Error(dbError.message);
             } else {
-                // التعديل هنا: استخدام دالة توليد الروابط
                 const newSlug = generateSlug(title);
 
                 const { data: newProp, error: dbError } = await supabase.from("properties").insert({
                     ...propertyData,
-                    slug: newSlug, // بنستخدم الـ Slug الجديد هنا
+                    slug: newSlug,
                     advertiser_id: (await supabase.auth.getUser()).data.user?.id
                 }).select("id").single();
                 if (dbError) throw new Error(dbError.message);

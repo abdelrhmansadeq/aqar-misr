@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Users, CalendarDays, Eye, PlusCircle, ArrowLeft, Building2 } from "lucide-react";
+import { Home, Users, CalendarDays, Eye, PlusCircle, ArrowLeft, Building2, Phone, User } from "lucide-react";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default async function AdminDashboard() {
     const supabase = await createClient();
@@ -15,6 +16,22 @@ export default async function AdminDashboard() {
 
     // 2. جلب بيانات العقارات للرسوم البيانية
     const { data: properties } = await supabase.from("properties").select("purpose, type");
+
+    // 3. جلب أحدث 5 عقارات
+    const { data: latestProperties } = await supabase
+        .from("properties")
+        .select("id, title, price, created_at, status")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+    // 4. جلب أحدث 5 طلبات معاينة
+    const { data: latestLeads } = await supabase
+        .from("leads")
+        .select("id, name, phone, status, created_at")
+        .eq("name", "تنبيه بحث") // بنستبعد طلبات التنبيه عشان نعرض طلبات المعاينة بس
+        .neq("name", "تنبيه بحث") // (للتأكيد)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
     let saleCount = 0;
     let rentCount = 0;
@@ -118,8 +135,10 @@ export default async function AdminDashboard() {
             {/* الرسوم البيانية */}
             <DashboardCharts purposeData={purposeData} typeData={typeData} />
 
-            {/* قسم النشاط الأخير (وهمي حالياً، هنفعله بعدين) */}
+            {/* أحدث العقارات وأحدث الطلبات */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* أحدث العقارات */}
                 <Card className="bg-card shadow-sm border-border">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-lg">أحدث العقارات المضافة</CardTitle>
@@ -128,10 +147,29 @@ export default async function AdminDashboard() {
                         </Link>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-center py-8">هنا سيتم عرض أحدث العقارات</p>
+                        <div className="space-y-4">
+                            {latestProperties?.map(prop => (
+                                <div key={prop.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-primary/10 p-2 rounded-md"><Home className="h-4 w-4 text-primary" /></div>
+                                        <div>
+                                            <p className="text-sm font-bold line-clamp-1">{prop.title}</p>
+                                            <p className="text-xs text-muted-foreground">{prop.price.toLocaleString('ar-EG')} ج.م</p>
+                                        </div>
+                                    </div>
+                                    <Badge variant={prop.status === 'published' ? 'default' : 'secondary'}>
+                                        {prop.status === 'published' ? 'منشور' : 'مسودة'}
+                                    </Badge>
+                                </div>
+                            ))}
+                            {(!latestProperties || latestProperties.length === 0) && (
+                                <p className="text-sm text-muted-foreground text-center py-4">لا توجد عقارات مضافة.</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
 
+                {/* أحدث طلبات المعاينة */}
                 <Card className="bg-card shadow-sm border-border">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="text-lg">أحدث طلبات المعاينة</CardTitle>
@@ -140,9 +178,28 @@ export default async function AdminDashboard() {
                         </Link>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-center py-8">هنا سيتم عرض أحدث الطلبات</p>
+                        <div className="space-y-4">
+                            {latestLeads?.map(lead => (
+                                <div key={lead.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-amber-500/10 p-2 rounded-md"><User className="h-4 w-4 text-amber-500" /></div>
+                                        <div>
+                                            <p className="text-sm font-bold">{lead.name}</p>
+                                            <p className="text-xs text-muted-foreground dir-ltr text-right">{lead.phone}</p>
+                                        </div>
+                                    </div>
+                                    <Badge variant={lead.status === 'new' ? 'default' : 'secondary'}>
+                                        {lead.status === 'new' ? 'جديد' : 'تم التواصل'}
+                                    </Badge>
+                                </div>
+                            ))}
+                            {(!latestLeads || latestLeads.length === 0) && (
+                                <p className="text-sm text-muted-foreground text-center py-4">لا توجد طلبات معاينة.</p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
+
             </div>
 
         </div>

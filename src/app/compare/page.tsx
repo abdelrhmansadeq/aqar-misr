@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Property } from "@/types/property";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Scale, Trash2, CheckCircle2 } from "lucide-react";
+import { Scale, Trash2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -26,10 +26,13 @@ export default function ComparePage() {
                 setLoading(false);
                 return;
             }
+
+            const propertyIds = compareList.map(item => item.id);
+
             const { data } = await supabase
                 .from("properties")
                 .select("*, property_images (id, file_path, order)")
-                .in("id", compareList);
+                .in("id", propertyIds);
 
             if (data) setProperties(data as Property[]);
             setLoading(false);
@@ -51,7 +54,6 @@ export default function ComparePage() {
         );
     }
 
-    // إيجاد أفضل القيم للمقارنة
     const minPrice = Math.min(...properties.map(p => p.price));
     const maxArea = Math.max(...properties.map(p => p.area_m2));
     const minPricePerMeter = Math.min(...properties.map(p => Math.round(p.price / p.area_m2)));
@@ -74,7 +76,8 @@ export default function ComparePage() {
                                         <Image src={prop.image_url || "/placeholder.jpg"} alt={prop.title} fill className="object-cover" />
                                     </div>
                                     <h3 className="font-bold text-lg line-clamp-1 mb-2">{prop.title}</h3>
-                                    <Button variant="ghost" size="sm" onClick={() => toggleCompare(prop.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8">
+                                    {/* التعديل هنا عشان نمرر الغرض */}
+                                    <Button variant="ghost" size="sm" onClick={() => toggleCompare(prop.id, prop.purpose)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8">
                                         <Trash2 className="h-4 w-4 ml-1" /> إزالة
                                     </Button>
                                 </TableHead>

@@ -10,7 +10,7 @@ import { useFavorites } from "@/components/providers/favorites-provider";
 import { useCompare } from "@/components/providers/compare-provider";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/utils/time";
-import { useState } from "react";
+import { useState, UIEvent, MouseEvent } from "react"; // ضفنا الأنواع عشان نمنع تحذيرات الـ UMD
 
 export function PropertyCard({ property }: { property: Property }) {
     const { toggleFavorite, isFavorite } = useFavorites();
@@ -19,6 +19,7 @@ export function PropertyCard({ property }: { property: Property }) {
     const favorited = isFavorite(property.id);
     const compared = isInCompare(property.id);
 
+    // تجهيز الصور مع التأكد من صلاحية الروابط
     let propertyImages: string[] = [];
     if (property.property_images && property.property_images.length > 0) {
         propertyImages = property.property_images
@@ -31,7 +32,8 @@ export function PropertyCard({ property }: { property: Property }) {
 
     const [activeIndex, setActiveIndex] = useState(0);
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // لوجيك السلايدر
+    const handleScroll = (e: UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
         const scrollLeft = Math.abs(container.scrollLeft);
         const width = container.clientWidth;
@@ -43,7 +45,7 @@ export function PropertyCard({ property }: { property: Property }) {
 
     const pricePerMeter = Math.round(property.price / property.area_m2);
 
-    const handleAction = (e: React.MouseEvent, action: () => void) => {
+    const handleAction = (e: MouseEvent, action: () => void) => {
         e.preventDefault();
         e.stopPropagation();
         action();
@@ -51,18 +53,18 @@ export function PropertyCard({ property }: { property: Property }) {
 
     return (
         <Link href={`/properties/${property.id}`}>
-            {/* ضفنا هنا animate-fade-in-up للحركة */}
             <Card className="animate-fade-in-up overflow-hidden hover:shadow-lg transition-all duration-300 group h-full border-border bg-card flex flex-col">
 
-                <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
+                {/* غيرنا aspect-[4/3] لـ aspect-4/3 عشان نرضي Tailwind */}
+                <div className="relative w-full aspect-4/3 bg-muted overflow-hidden">
 
-                    {/* السلايدر */}
                     <div
                         className="flex w-full h-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                         onScroll={handleScroll}
                     >
                         {propertyImages.map((img, index) => (
-                            <div key={index} className="relative w-full h-full flex-shrink-0 snap-center">
+                            /* غيرنا flex-shrink-0 لـ shrink-0 */
+                            <div key={index} className="relative w-full h-full shrink-0 snap-center">
                                 <Image
                                     src={img}
                                     alt={`${property.title} - ${index + 1}`}
@@ -74,7 +76,6 @@ export function PropertyCard({ property }: { property: Property }) {
                         ))}
                     </div>
 
-                    {/* النقط (Dots) */}
                     {propertyImages.length > 1 && (
                         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                             {propertyImages.map((_, index) => (
@@ -89,7 +90,6 @@ export function PropertyCard({ property }: { property: Property }) {
                         </div>
                     )}
 
-                    {/* أزرار المفضلة والمقارنة */}
                     <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
                         <button
                             onClick={(e) => handleAction(e, () => toggleFavorite(property.id))}
@@ -97,8 +97,10 @@ export function PropertyCard({ property }: { property: Property }) {
                         >
                             <Heart className={cn("h-4 w-4 transition-colors", favorited ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
                         </button>
+
+                        {/* شيلنا التعليق من جوه الزرار لأنه كان عامل خطأ */}
                         <button
-                            onClick={(e) => handleAction(e, () => toggleCompare(property.id))}
+                            onClick={(e) => handleAction(e, () => toggleCompare(property.id, property.purpose))}
                             className={cn(
                                 "p-2 backdrop-blur-sm rounded-full transition-colors shadow-sm",
                                 compared ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-background/80 hover:bg-background text-muted-foreground"
@@ -108,7 +110,6 @@ export function PropertyCard({ property }: { property: Property }) {
                         </button>
                     </div>
 
-                    {/* الشارات */}
                     <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
                         {property.verified && (
                             <Badge className="bg-green-600 hover:bg-green-700 text-white border-0">موثق</Badge>
@@ -119,7 +120,6 @@ export function PropertyCard({ property }: { property: Property }) {
                     </div>
                 </div>
 
-                {/* تفاصيل الكارت */}
                 <CardContent className="p-4 flex flex-col flex-1 justify-between">
                     <div>
                         <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors text-foreground mb-1">

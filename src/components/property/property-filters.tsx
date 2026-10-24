@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,16 +18,18 @@ export function PropertyFilters() {
     const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
     const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
 
-    // دالة مساعدة تستقبل string | null وتضمن عدم حدوث خطأ
-    const handlePurposeChange = (value: string | null) => {
-        setPurpose(value || "all");
-    };
+    // الحقول الجديدة
+    const [bedrooms, setBedrooms] = useState(searchParams.get("bedrooms") || "all");
+    const [finishing, setFinishing] = useState(searchParams.get("finishing") || "all");
+    const [deliveryStatus, setDeliveryStatus] = useState(searchParams.get("delivery_status") || "all");
 
-    const handleTypeChange = (value: string | null) => {
-        setType(value || "all");
-    };
+    const handlePurposeChange = (value: string | null) => { if (value) setPurpose(value); };
+    const handleTypeChange = (value: string | null) => { if (value) setType(value); };
+    const handleBedroomsChange = (value: string | null) => { if (value) setBedrooms(value); };
+    const handleFinishingChange = (value: string | null) => { if (value) setFinishing(value); };
+    const handleDeliveryChange = (value: string | null) => { if (value) setDeliveryStatus(value); };
 
-    const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSearch = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         const params = new URLSearchParams();
@@ -38,6 +40,11 @@ export function PropertyFilters() {
         if (minPrice) params.set("minPrice", minPrice);
         if (maxPrice) params.set("maxPrice", maxPrice);
 
+        // إضافة الفلاتر الجديدة
+        if (bedrooms !== "all") params.set("bedrooms", bedrooms);
+        if (finishing !== "all") params.set("finishing", finishing);
+        if (deliveryStatus !== "all") params.set("delivery_status", deliveryStatus);
+
         router.push(`/properties?${params.toString()}`);
     };
 
@@ -47,11 +54,14 @@ export function PropertyFilters() {
         setCity("");
         setMinPrice("");
         setMaxPrice("");
+        setBedrooms("all");
+        setFinishing("all");
+        setDeliveryStatus("all");
         router.push("/properties");
     };
 
     return (
-        <form onSubmit={handleSearch} className="bg-card border rounded-xl p-4 space-y-6 sticky top-24">
+        <form onSubmit={handleSearch} className="bg-card border rounded-xl p-4 space-y-5 sticky top-24">
             <div className="flex items-center justify-between border-b pb-2">
                 <h2 className="font-bold text-lg">الفلاتر</h2>
                 <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-8 px-2">
@@ -61,7 +71,6 @@ export function PropertyFilters() {
 
             <div className="space-y-2">
                 <Label>الغرض</Label>
-                {/* نستخدم handlePurposeChange بدلاً من setPurpose مباشرة */}
                 <Select value={purpose} onValueChange={handlePurposeChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -74,7 +83,6 @@ export function PropertyFilters() {
 
             <div className="space-y-2">
                 <Label>نوع العقار</Label>
-                {/* نستخدم handleTypeChange بدلاً من setType مباشرة */}
                 <Select value={type} onValueChange={handleTypeChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -83,6 +91,7 @@ export function PropertyFilters() {
                         <SelectItem value="villa">فيلا</SelectItem>
                         <SelectItem value="land">أرض</SelectItem>
                         <SelectItem value="office">مكتب</SelectItem>
+                        <SelectItem value="shop">محل</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -103,25 +112,59 @@ export function PropertyFilters() {
             <div className="space-y-2">
                 <Label>السعر (جنيه)</Label>
                 <div className="flex gap-2 items-center">
-                    <Input
-                        type="number"
-                        placeholder="من"
-                        value={minPrice}
-                        onChange={(e) => setMinPrice(e.target.value)}
-                    />
+                    <Input type="number" placeholder="من" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} />
                     <span className="text-muted-foreground">-</span>
-                    <Input
-                        type="number"
-                        placeholder="إلى"
-                        value={maxPrice}
-                        onChange={(e) => setMaxPrice(e.target.value)}
-                    />
+                    <Input type="number" placeholder="إلى" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
                 </div>
             </div>
 
-            <Button type="submit" className="w-full py-6 text-lg gap-2">
-                <Search className="h-5 w-5" />
-                بحث
+            {/* الفلاتر الجديدة */}
+            <div className="pt-2 border-t space-y-4">
+                <div className="space-y-2">
+                    <Label>عدد غرف النوم</Label>
+                    <Select value={bedrooms} onValueChange={handleBedroomsChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">الكل</SelectItem>
+                            <SelectItem value="1">1 غرفة</SelectItem>
+                            <SelectItem value="2">2 غرف</SelectItem>
+                            <SelectItem value="3">3 غرف</SelectItem>
+                            <SelectItem value="4">4 غرف</SelectItem>
+                            <SelectItem value="5">5 غرف فأكثر</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>مستوى التشطيب</Label>
+                    <Select value={finishing} onValueChange={handleFinishingChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">الكل</SelectItem>
+                            <SelectItem value="unfinished">بدون تشطيب</SelectItem>
+                            <SelectItem value="semi_finished">نصف تشطيب</SelectItem>
+                            <SelectItem value="finished">تشطيب كامل</SelectItem>
+                            <SelectItem value="super_lux">سوبر لوكس</SelectItem>
+                            <SelectItem value="furnished">مفروش</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>حالة التسليم</Label>
+                    <Select value={deliveryStatus} onValueChange={handleDeliveryChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">الكل</SelectItem>
+                            <SelectItem value="ready">جاهز للاستلام</SelectItem>
+                            <SelectItem value="under_construction">تحت الإنشاء</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <Button type="submit" className="w-full py-6 text-lg gap-2 mt-2">
+                <Search className="h-5 w-5" /> بحث
             </Button>
         </form>
     );

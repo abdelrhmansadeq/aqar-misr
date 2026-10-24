@@ -10,6 +10,8 @@ export type Property = {
     bedrooms: number;
     bathrooms: number;
     floor: number;
+    finishing?: "unfinished" | "semi_finished" | "finished" | "super_lux" | "furnished" | null; // جديد
+    delivery_status?: "ready" | "under_construction" | null; // جديد
     city: string;
     district: string;
     governorate: string;
@@ -18,10 +20,7 @@ export type Property = {
     updated_at?: string;
     status: string;
     image_url?: string | null;
-
-    // ضفنا السطر ده عشان الكارت يعرف يقرأ الصور
     property_images?: { id: string; file_path: string; order: number }[] | null;
-
     lat?: number | null;
     lng?: number | null;
     video_url?: string | null;

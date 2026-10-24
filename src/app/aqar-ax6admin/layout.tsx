@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, LayoutDashboard, Home, Users, Settings, ArrowRight, CalendarDays } from "lucide-react";
+import { Building2, LayoutDashboard, Home, Users, Settings, ArrowRight, CalendarDays, Search } from "lucide-react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { usePathname } from "next/navigation";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
-    // دالة عشان نعرف نلون اللينك النشط
+    // دالة عشان نلون اللينك النشط
     const getLinkClass = (path: string) => {
         const baseClass = "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium";
         if (pathname === path) {
@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <span>لوحة التحكم</span>
                     </Link>
                 </div>
-                <nav className="flex-1 p-4 space-y-1.5">
+                <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
                     <Link href="/aqar-ax6admin" className={getLinkClass("/aqar-ax6admin")}>
                         <LayoutDashboard className="h-5 w-5" />
                         <span>نظرة عامة</span>
@@ -39,6 +39,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/aqar-ax6admin/leads" className={getLinkClass("/aqar-ax6admin/leads")}>
                         <CalendarDays className="h-5 w-5" />
                         <span>طلبات المعاينة</span>
+                    </Link>
+                    {/* اللينك الجديد هنا */}
+                    <Link href="/aqar-ax6admin/saved-searches" className={getLinkClass("/aqar-ax6admin/saved-searches")}>
+                        <Search className="h-5 w-5" />
+                        <span>البحثات المحفوظة</span>
                     </Link>
                     <Link href="/aqar-ax6admin/users" className={getLinkClass("/aqar-ax6admin/users")}>
                         <Users className="h-5 w-5" />

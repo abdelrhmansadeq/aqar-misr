@@ -14,7 +14,7 @@ import Image from "next/image";
 import { Property } from "@/types/property";
 import { X, UploadCloud, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner"; // ضفنا ده
+import { toast } from "sonner";
 
 type FormImage = { id?: string; url: string; file?: File };
 
@@ -96,10 +96,15 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 area_m2: Number(formData.get("area_m2")),
                 bedrooms: Number(formData.get("bedrooms")),
                 bathrooms: Number(formData.get("bathrooms")),
+                floor: Number(formData.get("floor")),
+                finishing: formData.get("finishing") as string,
+                delivery_status: formData.get("delivery_status") as string,
                 governorate: formData.get("governorate") as string,
                 city: formData.get("city") as string,
                 district: formData.get("district") as string,
                 image_url: coverUrl,
+                video_url: formData.get("video_url") as string, // جديد
+                tour_url: formData.get("tour_url") as string, // جديد
                 status: "published",
                 verified: true,
             };
@@ -134,12 +139,12 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 }
             }
 
-            toast.success(initialData ? "تم تعديل العقار بنجاح" : "تم إضافة العقار بنجاح"); // الإشعار الجديد
+            toast.success(initialData ? "تم تعديل العقار بنجاح" : "تم إضافة العقار بنجاح");
             router.push("/aqar-ax6admin/properties");
             router.refresh();
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : "حدث خطأ غير معروف";
-            toast.error("حدث خطأ: " + message); // الإشعار الجديد
+            toast.error("حدث خطأ: " + message);
         } finally {
             setLoading(false);
         }
@@ -153,7 +158,7 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2"><Label>عنوان العقار</Label><Input name="title" defaultValue={initialData?.title} required /></div>
                         <div className="space-y-2"><Label>الغرض</Label><Select name="purpose" defaultValue={initialData?.purpose || "sale"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="sale">للبيع</SelectItem><SelectItem value="rent">للإيجار</SelectItem></SelectContent></Select></div>
-                        <div className="space-y-2"><Label>نوع العقار</Label><Select name="type" defaultValue={initialData?.type || "apartment"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="apartment">شقة</SelectItem><SelectItem value="villa">فيلا</SelectItem><SelectItem value="land">أرض</SelectItem><SelectItem value="office">مكتب</SelectItem></SelectContent></Select></div>
+                        <div className="space-y-2"><Label>نوع العقار</Label><Select name="type" defaultValue={initialData?.type || "apartment"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="apartment">شقة</SelectItem><SelectItem value="villa">فيلا</SelectItem><SelectItem value="land">أرض</SelectItem><SelectItem value="office">مكتب</SelectItem><SelectItem value="shop">محل</SelectItem><SelectItem value="chalet">شاليه</SelectItem></SelectContent></Select></div>
                         <div className="space-y-2"><Label>السعر (جنيه)</Label><Input name="price" type="number" defaultValue={initialData?.price} required /></div>
                     </div>
                 </CardContent>
@@ -167,12 +172,52 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                         <div className="space-y-2"><Label>المدينة/المنطقة</Label><Input name="city" defaultValue={initialData?.city} required /></div>
                         <div className="space-y-2"><Label>الحي/الشارع</Label><Input name="district" defaultValue={initialData?.district} required /></div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="space-y-2"><Label>المساحة (م²)</Label><Input name="area_m2" type="number" defaultValue={initialData?.area_m2} required /></div>
                         <div className="space-y-2"><Label>غرف النوم</Label><Input name="bedrooms" type="number" defaultValue={initialData?.bedrooms} required /></div>
                         <div className="space-y-2"><Label>الحمامات</Label><Input name="bathrooms" type="number" defaultValue={initialData?.bathrooms} required /></div>
+                        <div className="space-y-2"><Label>الدور</Label><Input name="floor" type="number" defaultValue={initialData?.floor || 0} required /></div>
                     </div>
-                    <div className="space-y-2"><Label>الوصف</Label><Textarea name="description" defaultValue={initialData?.description} required className="min-h-32" /></div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t mt-4">
+                        <div className="space-y-2">
+                            <Label>مستوى التشطيب</Label>
+                            <Select name="finishing" defaultValue={initialData?.finishing || "finished"}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="unfinished">بدون تشطيب</SelectItem>
+                                    <SelectItem value="semi_finished">نصف تشطيب</SelectItem>
+                                    <SelectItem value="finished">تشطيب كامل</SelectItem>
+                                    <SelectItem value="super_lux">سوبر لوكس</SelectItem>
+                                    <SelectItem value="furnished">مفروش</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>حالة التسليم</Label>
+                            <Select name="delivery_status" defaultValue={initialData?.delivery_status || "ready"}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ready">جاهز للاستلام</SelectItem>
+                                    <SelectItem value="under_construction">تحت الإنشاء</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 mt-4"><Label>الوصف</Label><Textarea name="description" defaultValue={initialData?.description} required className="min-h-32" /></div>
+
+                    {/* الحقول الجديدة للفيديو والجولة */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t mt-4">
+                        <div className="space-y-2">
+                            <Label>رابط فيديو العقار (يوتيوب مثلاً)</Label>
+                            <Input name="video_url" defaultValue={initialData?.video_url || ""} placeholder="https://youtube.com/..." dir="ltr" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>رابط جولة 360 درجة</Label>
+                            <Input name="tour_url" defaultValue={initialData?.tour_url || ""} placeholder="https://..." dir="ltr" />
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -183,7 +228,7 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/20 hover:bg-muted/40 transition-colors">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                             <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">اضغط لاختيار الصور (يمكنك إضافة صور جديدة)</p>
+                            <p className="text-sm text-muted-foreground">اضغط لاختيار الصور</p>
                         </div>
                         <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
                     </label>

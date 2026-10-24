@@ -21,7 +21,6 @@ export default function PropertyList() {
     const [hasMore, setHasMore] = useState(true);
     const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
-    // التعديل 1: استخدام useMemo عشان نعمل الكلاينت مرة واحدة بس وميتعملش مع كل ريفريش
     const supabase = useMemo(() => createClient(), []);
     const searchParams = useSearchParams();
 
@@ -48,11 +47,27 @@ export default function PropertyList() {
         const minPrice = searchParams.get("minPrice");
         const maxPrice = searchParams.get("maxPrice");
 
+        // الفلاتر الجديدة
+        const bedrooms = searchParams.get("bedrooms");
+        const finishing = searchParams.get("finishing");
+        const deliveryStatus = searchParams.get("delivery_status");
+
         if (purpose && purpose !== "all") query = query.eq("purpose", purpose);
         if (type && type !== "all") query = query.eq("type", type);
         if (city) query = query.ilike("city", `%${city}%`);
         if (minPrice) query = query.gte("price", Number(minPrice));
         if (maxPrice) query = query.lte("price", Number(maxPrice));
+
+        // تطبيق الفلاتر الجديدة
+        if (bedrooms && bedrooms !== "all") {
+            if (bedrooms === "5") {
+                query = query.gte("bedrooms", 5); // 5 فأكثر
+            } else {
+                query = query.eq("bedrooms", Number(bedrooms));
+            }
+        }
+        if (finishing && finishing !== "all") query = query.eq("finishing", finishing);
+        if (deliveryStatus && deliveryStatus !== "all") query = query.eq("delivery_status", deliveryStatus);
 
         const { data, error } = await query
             .order("created_at", { ascending: false })
@@ -65,7 +80,6 @@ export default function PropertyList() {
                 setProperties((prev) => [...prev, ...(data as Property[])]);
             }
 
-            // التعديل 2: بنزود رقم الصفحة بس لو الداتا رجعت بنجاح
             if (!isNewSearch) {
                 setPage(pageNumber);
             }
@@ -80,13 +94,13 @@ export default function PropertyList() {
     }, [supabase, searchParams]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchProperties(0, true);
     }, [fetchProperties]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                // التعديل 3: بنبعت الرقم اللي بعده بس ومش بنحدث الـ state هنا
                 if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
                     void fetchProperties(page + 1, false);
                 }

@@ -15,6 +15,7 @@ import { Property } from "@/types/property";
 import { X, UploadCloud, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { generateSlug } from "@/lib/utils/slug"; // ضفنا الاستيراد ده
 
 type FormImage = { id?: string; url: string; file?: File };
 
@@ -65,6 +66,7 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
         e.preventDefault();
         setLoading(true);
         const formData = new FormData(e.currentTarget);
+        const title = formData.get("title") as string;
 
         try {
             const finalImageUrls: FormImage[] = [];
@@ -88,7 +90,7 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
             const coverUrl = finalImageUrls[coverIndex]?.url || initialData?.image_url || "";
 
             const propertyData = {
-                title: formData.get("title") as string,
+                title: title,
                 description: formData.get("description") as string,
                 purpose: formData.get("purpose") as string,
                 type: formData.get("type") as string,
@@ -103,8 +105,8 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 city: formData.get("city") as string,
                 district: formData.get("district") as string,
                 image_url: coverUrl,
-                video_url: formData.get("video_url") as string, // جديد
-                tour_url: formData.get("tour_url") as string, // جديد
+                video_url: formData.get("video_url") as string,
+                tour_url: formData.get("tour_url") as string,
                 status: "published",
                 verified: true,
             };
@@ -115,9 +117,12 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
                 const { error: dbError } = await supabase.from("properties").update(propertyData).eq("id", initialData.id);
                 if (dbError) throw new Error(dbError.message);
             } else {
+                // التعديل هنا: استخدام دالة توليد الروابط
+                const newSlug = generateSlug(title);
+
                 const { data: newProp, error: dbError } = await supabase.from("properties").insert({
                     ...propertyData,
-                    slug: `عقار-${Math.floor(Math.random() * 10000)}`,
+                    slug: newSlug, // بنستخدم الـ Slug الجديد هنا
                     advertiser_id: (await supabase.auth.getUser()).data.user?.id
                 }).select("id").single();
                 if (dbError) throw new Error(dbError.message);
@@ -207,14 +212,13 @@ export function PropertyForm({ initialData }: { initialData?: Property }) {
 
                     <div className="space-y-2 mt-4"><Label>الوصف</Label><Textarea name="description" defaultValue={initialData?.description} required className="min-h-32" /></div>
 
-                    {/* الحقول الجديدة للفيديو والجولة */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t mt-4">
                         <div className="space-y-2">
-                            <Label>رابط فيديو العقار (يوتيوب مثلاً)</Label>
+                            <Label>رابط فيديو العقار (اختياري)</Label>
                             <Input name="video_url" defaultValue={initialData?.video_url || ""} placeholder="https://youtube.com/..." dir="ltr" />
                         </div>
                         <div className="space-y-2">
-                            <Label>رابط جولة 360 درجة</Label>
+                            <Label>رابط جولة 360 درجة (اختياري)</Label>
                             <Input name="tour_url" defaultValue={initialData?.tour_url || ""} placeholder="https://..." dir="ltr" />
                         </div>
                     </div>

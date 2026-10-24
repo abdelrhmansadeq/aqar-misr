@@ -6,9 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { Property } from "@/types/property";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Scale, Trash2 } from "lucide-react";
+import { Scale, Trash2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 export default function ComparePage() {
     const { compareList, isMounted, toggleCompare } = useCompare();
@@ -25,7 +26,11 @@ export default function ComparePage() {
                 setLoading(false);
                 return;
             }
-            const { data } = await supabase.from("properties").select("*").in("id", compareList);
+            const { data } = await supabase
+                .from("properties")
+                .select("*, property_images (id, file_path, order)")
+                .in("id", compareList);
+
             if (data) setProperties(data as Property[]);
             setLoading(false);
         }
@@ -33,7 +38,7 @@ export default function ComparePage() {
         fetchProperties();
     }, [compareList, isMounted, supabase]);
 
-    if (!isMounted || loading) return <div className="text-center py-20">جاري التحميل...</div>;
+    if (!isMounted || loading) return <div className="text-center py-20 text-muted-foreground">جاري التحميل...</div>;
 
     if (properties.length === 0) {
         return (
@@ -46,25 +51,30 @@ export default function ComparePage() {
         );
     }
 
+    // إيجاد أفضل القيم للمقارنة
+    const minPrice = Math.min(...properties.map(p => p.price));
+    const maxArea = Math.max(...properties.map(p => p.area_m2));
+    const minPricePerMeter = Math.min(...properties.map(p => Math.round(p.price / p.area_m2)));
+
     return (
-        <div className="container mx-auto px-4 py-8 overflow-x-auto">
+        <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-primary mb-2">مقارنة العقارات</h1>
                 <p className="text-muted-foreground">قارن بين مميزات العقارات التي اخترتها لتأخذ القرار الأفضل.</p>
             </div>
 
-            <div className="border rounded-xl bg-card overflow-hidden min-w-[700px]">
-                <Table>
+            <div className="border rounded-xl bg-card overflow-x-auto shadow-sm">
+                <Table className="min-w-[800px]">
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-1/4 bg-muted/50 font-bold text-foreground">المواصفات</TableHead>
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-1/4 bg-muted/30 font-bold text-foreground rounded-tr-xl">المواصفات</TableHead>
                             {properties.map((prop) => (
-                                <TableHead key={prop.id} className="w-1/4 p-4 text-center">
+                                <TableHead key={prop.id} className="w-1/4 p-4 text-center border-r">
                                     <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-3">
                                         <Image src={prop.image_url || "/placeholder.jpg"} alt={prop.title} fill className="object-cover" />
                                     </div>
-                                    <h3 className="font-bold text-lg line-clamp-1">{prop.title}</h3>
-                                    <Button variant="ghost" size="sm" onClick={() => toggleCompare(prop.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 mt-2 h-8">
+                                    <h3 className="font-bold text-lg line-clamp-1 mb-2">{prop.title}</h3>
+                                    <Button variant="ghost" size="sm" onClick={() => toggleCompare(prop.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8">
                                         <Trash2 className="h-4 w-4 ml-1" /> إزالة
                                     </Button>
                                 </TableHead>
@@ -73,51 +83,72 @@ export default function ComparePage() {
                     </TableHeader>
                     <TableBody>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">السعر</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">السعر</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center font-bold text-primary text-lg">
+                                <TableCell key={prop.id} className={cn("text-center font-bold text-lg border-r", prop.price === minPrice ? "text-green-600 bg-green-50/50 dark:bg-green-950/20" : "")}>
                                     {prop.price.toLocaleString("ar-EG")} ج.م
                                 </TableCell>
                             ))}
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">الغرض</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">سعر المتر</TableCell>
+                            {properties.map((prop) => {
+                                const ppm = Math.round(prop.price / prop.area_m2);
+                                return (
+                                    <TableCell key={prop.id} className={cn("text-center font-medium border-r", ppm === minPricePerMeter ? "text-green-600 bg-green-50/50 dark:bg-green-950/20" : "")}>
+                                        {ppm.toLocaleString("ar-EG")} ج.م
+                                    </TableCell>
+                                );
+                            })}
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-semibold bg-muted/10">الغرض</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center">
+                                <TableCell key={prop.id} className="text-center border-r">
                                     {prop.purpose === "sale" ? "للبيع" : "للإيجار"}
                                 </TableCell>
                             ))}
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">نوع العقار</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">نوع العقار</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center">
-                                    {prop.type === "apartment" ? "شقة" : prop.type === "villa" ? "فيلا" : prop.type === "land" ? "أرض" : "آخر"}
+                                <TableCell key={prop.id} className="text-center border-r">
+                                    {prop.type === "apartment" ? "شقة" : prop.type === "villa" ? "فيلا" : prop.type === "land" ? "أرض" : prop.type === "office" ? "مكتب" : "أخرى"}
                                 </TableCell>
                             ))}
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">المساحة</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">المساحة</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center">{prop.area_m2} م²</TableCell>
+                                <TableCell key={prop.id} className={cn("text-center border-r", prop.area_m2 === maxArea ? "text-green-600 bg-green-50/50 dark:bg-green-950/20 font-bold" : "")}>
+                                    {prop.area_m2} م²
+                                </TableCell>
                             ))}
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">غرف النوم</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">غرف النوم</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center">{prop.bedrooms}</TableCell>
+                                <TableCell key={prop.id} className="text-center border-r">{prop.bedrooms}</TableCell>
                             ))}
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">الحمامات</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">الحمامات</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center">{prop.bathrooms}</TableCell>
+                                <TableCell key={prop.id} className="text-center border-r">{prop.bathrooms}</TableCell>
                             ))}
                         </TableRow>
                         <TableRow>
-                            <TableCell className="font-semibold bg-muted/20">الموقع</TableCell>
+                            <TableCell className="font-semibold bg-muted/10">مستوى التشطيب</TableCell>
                             {properties.map((prop) => (
-                                <TableCell key={prop.id} className="text-center">{prop.city}، {prop.district}</TableCell>
+                                <TableCell key={prop.id} className="text-center border-r">
+                                    {prop.finishing === "super_lux" ? "سوبر لوكس" : prop.finishing === "finished" ? "تشطيب كامل" : prop.finishing === "semi_finished" ? "نصف تشطيب" : prop.finishing === "furnished" ? "مفروش" : "بدون"}
+                                </TableCell>
+                            ))}
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-semibold bg-muted/10">الموقع</TableCell>
+                            {properties.map((prop) => (
+                                <TableCell key={prop.id} className="text-center border-r">{prop.city}، {prop.district}</TableCell>
                             ))}
                         </TableRow>
                     </TableBody>

@@ -5,12 +5,12 @@ import { useFavorites } from "@/components/providers/favorites-provider";
 import { createClient } from "@/lib/supabase/client";
 import { PropertyCard } from "@/components/property/property-card";
 import { Property } from "@/types/property";
-import { HeartCrack } from "lucide-react";
+import { HeartCrack, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function FavoritesPage() {
-    const { favorites, isMounted } = useFavorites();
+    const { favorites, isMounted, clearFavorites } = useFavorites();
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
@@ -25,10 +25,9 @@ export default function FavoritesPage() {
                 return;
             }
 
-            // بنجيب العقارات اللي الـ id بتاعها موجود في المفضلة
             const { data } = await supabase
                 .from("properties")
-                .select("*")
+                .select("*, property_images (id, file_path, order)")
                 .in("id", favorites);
 
             if (data) setProperties(data as Property[]);
@@ -41,16 +40,23 @@ export default function FavoritesPage() {
     if (!isMounted || loading) {
         return (
             <div className="container mx-auto px-4 py-16 text-center">
-                <p className="text-muted-foreground">جاري تحميل المفضلة...</p>
+                <p className="text-muted-foreground animate-pulse">جاري تحميل المفضلة...</p>
             </div>
         );
     }
 
     return (
         <div className="container mx-auto px-4 py-8 min-h-[60vh]">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-primary mb-2">عقاراتي المفضلة</h1>
-                <p className="text-muted-foreground">العقارات التي قمت بحفظها للرجوع إليها لاحقاً.</p>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-primary mb-2">عقاراتي المفضلة</h1>
+                    <p className="text-muted-foreground">لديك {properties.length} عقار محفوظ.</p>
+                </div>
+                {properties.length > 0 && (
+                    <Button variant="outline" onClick={clearFavorites} className="text-destructive border-destructive hover:bg-destructive/10 gap-2">
+                        <Trash2 className="h-4 w-4" /> مسح الكل
+                    </Button>
+                )}
             </div>
 
             {properties.length === 0 ? (

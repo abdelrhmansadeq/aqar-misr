@@ -103,8 +103,7 @@ export default async function CompoundDetailsPage({ params }: { params: Promise<
                             </div>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-4 mb-4">{developer?.description}</p>
-                        <Link href={`/developers/${developer?.name}`}>
-                            <button className="w-full bg-primary text-primary-foreground py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
+                            <Link href={`/developers/${developer?.slug}`}>                            <button className="w-full bg-primary text-primary-foreground py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
                                 عرض كل مشاريع المطور
                             </button>
                         </Link>

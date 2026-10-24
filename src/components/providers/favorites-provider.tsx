@@ -1,27 +1,31 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 type FavoritesContextType = {
     favorites: string[];
     toggleFavorite: (id: string) => void;
     isFavorite: (id: string) => boolean;
+    clearFavorites: () => void;
     isMounted: boolean;
 };
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
-export function FavoritesProvider({ children }: { children: React.ReactNode }) {
+export function FavoritesProvider({ children }: { children: ReactNode }) {
     const [favorites, setFavorites] = useState<string[]>([]);
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        // بنكتم التحذير ده عشان إحنا مضطرين نقرأ من الـ localStorage أول ما الصفحة تفتح
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMounted(true);
+
         const stored = localStorage.getItem("aqar_favorites");
         if (stored) {
             try {
                 setFavorites(JSON.parse(stored));
-            } catch (e) {
+            } catch {
                 console.error("Failed to parse favorites");
             }
         }
@@ -39,11 +43,14 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         );
     };
 
+    const clearFavorites = () => {
+        setFavorites([]);
+    };
+
     const isFavorite = (id: string) => favorites.includes(id);
 
-    // دايماً بنرجع الـ Provider، الـ isMounted بنستخدمه جوه المكونات
     return (
-        <FavoritesContext.Provider value={{ favorites, toggleFavorite, isFavorite, isMounted }}>
+        <FavoritesContext.Provider value={{ favorites, toggleFavorite, isFavorite, clearFavorites, isMounted }}>
             {children}
         </FavoritesContext.Provider>
     );

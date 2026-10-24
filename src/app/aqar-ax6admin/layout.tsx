@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Building2, LayoutDashboard, Home, Users, Settings, ArrowRight, CalendarDays, Search } from "lucide-react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { usePathname } from "next/navigation";
+import { Mail } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -44,6 +45,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/aqar-ax6admin/saved-searches" className={getLinkClass("/aqar-ax6admin/saved-searches")}>
                         <Search className="h-5 w-5" />
                         <span>البحثات المحفوظة</span>
+                    </Link>
+                    <Link href="/aqar-ax6admin/messages" className={getLinkClass("/aqar-ax6admin/messages")}>
+                        <Mail className="h-5 w-5" />
+                        <span>رسائل التواصل</span>
                     </Link>
                     <Link href="/aqar-ax6admin/users" className={getLinkClass("/aqar-ax6admin/users")}>
                         <Users className="h-5 w-5" />

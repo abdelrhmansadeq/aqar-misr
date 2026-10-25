@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X, SlidersHorizontal } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export function PropertyFilters() {
     const router = useRouter();
@@ -61,10 +61,8 @@ export function PropertyFilters() {
         setIsOpen(false);
     };
 
-    // دالة بترندر الفلاتر
     const renderFilterContent = (isMobile = false) => (
         <form onSubmit={handleSearch} className="space-y-5">
-            {/* الهيدر ده بيظهر بس على الكمبيوتر */}
             {!isMobile && (
                 <div className="flex items-center justify-between border-b pb-2">
                     <h2 className="font-bold text-lg">الفلاتر</h2>
@@ -170,42 +168,40 @@ export function PropertyFilters() {
 
     return (
         <>
-            {/* 🌟 نسخة الموبايل */}
             <div className="md:hidden mb-4">
                 <Sheet open={isOpen} onOpenChange={setIsOpen}>
                     <SheetTrigger render={<Button className="w-full gap-2 py-6 text-lg" variant="outline" />}>
                         <SlidersHorizontal className="h-5 w-5" /> تصفية النتائج
                     </SheetTrigger>
 
+                    {/* ✅ السر هنا: استخدمنا flex flex-col و h-[85dvh] عشان نقسم الشاشة صح */}
                     <SheetContent
                         side="bottom"
-                        className="h-[85vh] overflow-y-auto rounded-t-2xl p-0 bg-background/85 backdrop-blur-xl border-t border-border/50"
+                        className="h-[85dvh] p-0 flex flex-col rounded-t-2xl bg-background/90 backdrop-blur-xl border-t border-border/50"
                     >
-                        {/* هيدر مخصص ثابت (Sticky) */}
-                        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md px-4 py-4 border-b flex items-center justify-between">
-                            <SheetTitle className="text-xl font-bold text-foreground pr-8">
-                                تصفية العقارات
-                            </SheetTitle>
+                        {/* 1. الهيدر (ثابت) */}
+                        <SheetHeader className="flex-none flex flex-row items-center justify-between px-4 py-4 border-b bg-background/95 space-y-0 text-right">
+                            <SheetTitle className="text-xl font-bold pr-8">تصفية العقارات</SheetTitle>
+
                             <Button
                                 type="button"
-                                variant="ghost"
+                                variant="destructive"
                                 size="sm"
                                 onClick={clearFilters}
-                                className="text-destructive hover:bg-destructive/10 h-8 px-3 transition-colors"
+                                className="h-8 px-3 rounded-full text-xs"
                             >
-                                <X className="h-4 w-4 ml-1" /> مسح الكل
+                                <X className="h-3.5 w-3.5 ml-1" /> مسح
                             </Button>
-                        </div>
+                        </SheetHeader>
 
-                        {/* محتوى الفلاتر */}
-                        <div className="px-4 pt-4 pb-10">
+                        {/* 2. المحتوى (قابل للتمرير) */}
+                        <div className="flex-1 overflow-y-auto px-4 py-6">
                             {renderFilterContent(true)}
                         </div>
                     </SheetContent>
                 </Sheet>
             </div>
 
-            {/* 🌟 نسخة الكمبيوتر */}
             <div className="hidden md:block bg-card border rounded-xl p-4 sticky top-24">
                 {renderFilterContent(false)}
             </div>

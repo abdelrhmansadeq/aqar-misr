@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Users, CalendarDays, Eye, PlusCircle, ArrowLeft, Building2, Phone, User } from "lucide-react";
+import { Home, Users, CalendarDays, Eye, PlusCircle, ArrowLeft, Building2, User } from "lucide-react";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,9 @@ export default async function AdminDashboard() {
     const { count: propertiesCount } = await supabase.from("properties").select("*", { count: "exact", head: true });
     const { count: usersCount } = await supabase.from("profiles").select("*", { count: "exact", head: true });
     const { count: leadsCount } = await supabase.from("leads").select("*", { count: "exact", head: true });
+
+    // ✅ إضافة: جلب عدد الزيارات الحقيقي من جدول السجلات
+    const { count: viewsCount } = await supabase.from("property_views_log").select("*", { count: "exact", head: true });
 
     // 2. جلب بيانات العقارات للرسوم البيانية
     const { data: properties } = await supabase.from("properties").select("purpose, type");
@@ -126,8 +129,9 @@ export default async function AdminDashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">0</div>
-                        <p className="text-xs text-muted-foreground mt-1">قريباً...</p>
+                        {/* ✅ هنا بنعرض عدد الزيارات الحقيقي */}
+                        <div className="text-3xl font-bold">{viewsCount || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-1">إجمالي مشاهدات العقارات</p>
                     </CardContent>
                 </Card>
             </div>

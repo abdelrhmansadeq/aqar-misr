@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -18,8 +18,15 @@ const cairo = Cairo({
     display: "swap",
 });
 
+// ✅ إضافة الـ Viewport مهمة جداً للـ PWA عشان تظبيط ألوان شريط الحالة على الموبايل
+export const viewport: Viewport = {
+    themeColor: "#0B1F3A",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-    // ده الرابط الأساسي للموقع (مهم جداً عشان الصور تظهر صح لما تشارك اللينك)
     metadataBase: new URL('https://aqar-misr-six.vercel.app'),
     title: {
         default: "عقار مصر | بوابتك لعالم العقارات",
@@ -28,6 +35,13 @@ export const metadata: Metadata = {
     description: "الموقع الأول للعقارات في مصر. تصفح آلاف الشقق، الفيلات، والأراضي للبيع والإيجار بأفضل الأسعار.",
     keywords: ["عقارات مصر", "شقق للبيع", "شقق للإيجار", "فيلات للبيع", "أراضي للبيع", "التجمع الخامس", "العاصمة الإدارية"],
     authors: [{ name: "Abdelrhman Sadeq" }],
+    // ✅ إعدادات PWA
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: "default",
+        title: "عقار مصر",
+    },
     openGraph: {
         title: "عقار مصر | بوابتك لعالم العقارات",
         description: "تصفح آلاف العقارات الموثقة للبيع والإيجار في مصر.",
@@ -37,7 +51,7 @@ export const metadata: Metadata = {
         type: "website",
         images: [
             {
-                url: "/og-image.jpg", // هنحتاج نحط صورة باسم ده في فولدر public
+                url: "/og-image.jpg",
                 width: 1200,
                 height: 630,
                 alt: "عقار مصر",

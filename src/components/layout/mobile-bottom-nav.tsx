@@ -35,8 +35,7 @@ export function MobileBottomNav() {
 
                 <Link href="/properties" className={getLinkClass("/properties")}>
                     <Search className="h-5 w-5" />
-                    <span className="text-[10px] font-medium">البحث</span>
-                </Link>
+                    <span className="text-[10px] font-medium">العقارات</span>                </Link>
 
                 <Link href="/favorites" className={getLinkClass("/favorites")}>
                     <div className="relative">

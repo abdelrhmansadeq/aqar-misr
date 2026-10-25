@@ -172,8 +172,7 @@ export function PropertyFilters() {
                     <SheetTrigger render={<Button className="w-full gap-2 py-6 text-lg" variant="outline" />}>
                         <SlidersHorizontal className="h-5 w-5" /> تصفية النتائج
                     </SheetTrigger>
-                    <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-2xl px-4 pb-10">
-                        <SheetHeader className="mb-4 text-right">
+                    <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-2xl px-4 pb-10 bg-background">                        <SheetHeader className="mb-4 text-right">
                             <SheetTitle>تصفية العقارات</SheetTitle>
                         </SheetHeader>
                         {renderFilterContent()}

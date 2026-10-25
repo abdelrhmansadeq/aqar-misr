@@ -11,6 +11,8 @@ import { CompareProvider } from "@/components/providers/compare-provider";
 import { CompareBar } from "@/components/property/compare-bar";
 import { Toaster } from "sonner";
 import { WhatsAppFloat } from "@/components/layout/whatsapp-float";
+// ✅ استيراد أداة الإحصائيات
+import { Analytics } from '@vercel/analytics/next';
 
 const cairo = Cairo({
     subsets: ["arabic", "latin"],
@@ -18,7 +20,6 @@ const cairo = Cairo({
     display: "swap",
 });
 
-// ✅ إضافة الـ Viewport مهمة جداً للـ PWA عشان تظبيط ألوان شريط الحالة على الموبايل
 export const viewport: Viewport = {
     themeColor: "#0B1F3A",
     width: "device-width",
@@ -35,7 +36,6 @@ export const metadata: Metadata = {
     description: "الموقع الأول للعقارات في مصر. تصفح آلاف الشقق، الفيلات، والأراضي للبيع والإيجار بأفضل الأسعار.",
     keywords: ["عقارات مصر", "شقق للبيع", "شقق للإيجار", "فيلات للبيع", "أراضي للبيع", "التجمع الخامس", "العاصمة الإدارية"],
     authors: [{ name: "Abdelrhman Sadeq" }],
-    // ✅ إعدادات PWA
     manifest: "/manifest.webmanifest",
     appleWebApp: {
         capable: true,
@@ -92,6 +92,8 @@ export default function RootLayout({
                         <MobileBottomNav />
                         <Toaster position="bottom-center" richColors />
                         <WhatsAppFloat />
+                        {/* ✅ إضافة أداة الإحصائيات هنا */}
+                        <Analytics />
                     </CompareProvider>
                 </FavoritesProvider>
             </NuqsAdapter>

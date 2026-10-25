@@ -7,8 +7,8 @@ import { PropertyFilters } from "@/components/property/property-filters";
 import { PropertyMap } from "@/components/property/property-map";
 import { Property } from "@/types/property";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, Map as MapIcon, Loader2 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { LayoutGrid, Map as MapIcon, Loader2, SearchX } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PropertySkeleton } from "@/components/property/property-skeleton";
 
 const LIMIT = 10;
@@ -23,6 +23,7 @@ export default function PropertyList() {
 
     const supabase = useMemo(() => createClient(), []);
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     const observerTarget = useRef(null);
 
@@ -47,7 +48,6 @@ export default function PropertyList() {
         const minPrice = searchParams.get("minPrice");
         const maxPrice = searchParams.get("maxPrice");
 
-        // الفلاتر الجديدة
         const bedrooms = searchParams.get("bedrooms");
         const finishing = searchParams.get("finishing");
         const deliveryStatus = searchParams.get("delivery_status");
@@ -58,10 +58,9 @@ export default function PropertyList() {
         if (minPrice) query = query.gte("price", Number(minPrice));
         if (maxPrice) query = query.lte("price", Number(maxPrice));
 
-        // تطبيق الفلاتر الجديدة
         if (bedrooms && bedrooms !== "all") {
             if (bedrooms === "5") {
-                query = query.gte("bedrooms", 5); // 5 فأكثر
+                query = query.gte("bedrooms", 5);
             } else {
                 query = query.eq("bedrooms", Number(bedrooms));
             }
@@ -94,7 +93,6 @@ export default function PropertyList() {
     }, [supabase, searchParams]);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchProperties(0, true);
     }, [fetchProperties]);
 
@@ -129,20 +127,10 @@ export default function PropertyList() {
             <div className="flex-1">
                 <div className="flex justify-end mb-4">
                     <div className="flex bg-muted p-1 rounded-lg">
-                        <Button
-                            variant={viewMode === "list" ? "default" : "ghost"}
-                            size="sm"
-                            onClick={() => setViewMode("list")}
-                            className="gap-2"
-                        >
+                        <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("list")} className="gap-2">
                             <LayoutGrid className="h-4 w-4" /> قائمة
                         </Button>
-                        <Button
-                            variant={viewMode === "map" ? "default" : "ghost"}
-                            size="sm"
-                            onClick={() => setViewMode("map")}
-                            className="gap-2"
-                        >
+                        <Button variant={viewMode === "map" ? "default" : "ghost"} size="sm" onClick={() => setViewMode("map")} className="gap-2">
                             <MapIcon className="h-4 w-4" /> خريطة
                         </Button>
                     </div>
@@ -159,8 +147,9 @@ export default function PropertyList() {
                 ) : properties.length > 0 ? (
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {properties.map((property) => (
-                                <PropertyCard key={property.id} property={property} />
+                            {/* ✅ التعديل هنا: بنبعت priority لأول 3 عقارات */}
+                            {properties.map((property, index) => (
+                                <PropertyCard key={property.id} property={property} priority={index < 3} />
                             ))}
                         </div>
 
@@ -177,9 +166,17 @@ export default function PropertyList() {
                         </div>
                     </>
                 ) : (
-                    <div className="text-center py-20 bg-muted/20 rounded-xl">
-                        <h3 className="text-xl font-bold mb-2">لا توجد نتائج مطابقة</h3>
-                        <p className="text-muted-foreground">جرب تغيير معايير البحث أو إزالة بعض الفلاتر.</p>
+                    <div className="flex flex-col items-center justify-center py-20 bg-muted/20 rounded-xl border border-dashed">
+                        <div className="bg-background p-4 rounded-full mb-4 shadow-sm">
+                            <SearchX className="h-10 w-10 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-2xl font-bold mb-2">لا توجد نتائج مطابقة</h3>
+                        <p className="text-muted-foreground mb-6 text-center max-w-sm">
+                            لم نتمكن من العثور على عقارات تطابق بحثك. جرب تغيير معايير البحث أو إزالة بعض الفلاتر.
+                        </p>
+                        <Button onClick={() => router.push('/properties')} variant="default" size="lg">
+                            مسح جميع الفلاتر
+                        </Button>
                     </div>
                 )}
             </div>

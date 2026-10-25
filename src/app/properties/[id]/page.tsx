@@ -12,26 +12,69 @@ import { Metadata } from "next";
 import { PropertyViewTracker } from "@/components/property/property-view-tracker";
 import { ContactButtons } from "@/components/property/contact-buttons";
 import { PropertyMap } from "@/components/property/property-map";
-import { ShareButtons } from "@/components/property/share-buttons"; // ضفنا ده
+import { ShareButtons } from "@/components/property/share-buttons";
 import { Property } from "@/types/property";
+import { cache } from "react";
+
+// دالة مجمعة (Cached) عشان نمنع جلب نفس العقار مرتين (مرة للميتا ومرة للصفحة)
+const getProperty = cache(async (id: string) => {
+    const supabase = await createClient();
+    const { data } = await supabase
+        .from("properties")
+        .select(`*, profiles:advertiser_id (phone), property_images (id, file_path, order)`)
+        .eq("id", id)
+        .single();
+    return data;
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const resolvedParams = await params;
-    const supabase = await createClient();
-    const { data: property } = await supabase.from("properties").select("title, description, image_url").eq("id", resolvedParams.id).single();
+    const property = await getProperty(resolvedParams.id);
+
     if (!property) return { title: "العقار غير موجود" };
-    return { title: `${property.title} | عقار مصر`, description: property.description.substring(0, 160) };
+
+    // تجهيز الصورة الأولى للعقار
+    const rawImages = property.property_images as { file_path: string; order: number }[] | null;
+    const images = rawImages?.sort((a, b) => a.order - b.order).map((img) => img.file_path) || [];
+    if (images.length === 0 && property.image_url) images.push(property.image_url);
+
+    const mainImage = images.length > 0 ? images[0] : "/opengraph-image.jpg";
+    const ogImageUrl = mainImage.startsWith("http") ? mainImage : `https://aqar-misr-six.vercel.app${mainImage}`;
+
+    return {
+        title: `${property.title} | عقار مصر`,
+        description: property.description.substring(0, 160),
+        alternates: {
+            canonical: `/properties/${property.id}`,
+        },
+        openGraph: {
+            title: property.title,
+            description: property.description.substring(0, 160),
+            url: `https://aqar-misr-six.vercel.app/properties/${property.id}`,
+            siteName: "عقار مصر",
+            locale: "ar_EG",
+            type: "website",
+            images: [
+                {
+                    url: ogImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: property.title,
+                }
+            ],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: property.title,
+            description: property.description.substring(0, 160),
+            images: [ogImageUrl],
+        }
+    };
 }
 
 export default async function PropertyDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = await params;
-    const supabase = await createClient();
-
-    const { data: property } = await supabase
-        .from("properties")
-        .select(`*, profiles:advertiser_id (phone), property_images (id, file_path, order)`)
-        .eq("id", resolvedParams.id)
-        .single();
+    const property = await getProperty(resolvedParams.id);
 
     if (!property) notFound();
 
@@ -47,8 +90,57 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
 
     const propertyForMap = [property as unknown as Property];
 
+    // ✅ تجهيز كود JSON-LD الخاص بجوجل
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "RealEstateListing",
+        "name": property.title,
+        "url": `https://aqar-misr-six.vercel.app/properties/${property.id}`,
+        "description": property.description,
+        "datePosted": property.created_at,
+        "image": images[0].startsWith("http") ? images[0] : `https://aqar-misr-six.vercel.app${images[0]}`,
+        "about": {
+            "@type": "Residence",
+            "name": property.title,
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": property.district || "",
+                "addressLocality": property.city || "",
+                "addressRegion": property.governorate || "Cairo",
+                "addressCountry": "EG"
+            },
+            ...(property.lat && property.lng ? {
+                "geo": {
+                    "@type": "GeoCoordinates",
+                    "latitude": property.lat,
+                    "longitude": property.lng
+                }
+            } : {}),
+            "floorSize": {
+                "@type": "QuantitativeValue",
+                "value": property.area_m2,
+                "unitCode": "MTK"
+            },
+            "numberOfRooms": property.bedrooms + (property.bathrooms || 0),
+            "numberOfBedrooms": property.bedrooms,
+            "numberOfBathroomsTotal": property.bathrooms,
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": property.price,
+            "priceCurrency": "EGP",
+            "availability": "https://schema.org/InStock"
+        }
+    };
+
     return (
         <div className="container mx-auto px-0 md:px-4 py-0 md:py-8 max-w-5xl">
+            {/* حقن كود JSON-LD في الصفحة */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+
             <PropertyViewTracker propertyId={property.id} />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
@@ -60,13 +152,12 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                             <ArrowRight className="h-4 w-4 ml-1" /> العودة للبحث
                         </Link>
 
-                        {/* تعديل: إضافة أزرار المشاركة جنب العنوان */}
                         <div className="mb-6">
                             <div className="flex items-start justify-between gap-4 mb-2">
                                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">{property.title}</h1>
                                 <ShareButtons
                                     title={property.title}
-                                    url={`https://aqar-misr-six.vercel.app/properties/${property.id}`}
+                                    url={`/properties/${property.id}`}
                                 />
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground">
@@ -98,7 +189,6 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                             <p className="text-muted-foreground leading-relaxed whitespace-pre-line text-sm md:text-base">{property.description}</p>
                         </div>
 
-                        {/* أزرار الفيديو والجولة */}
                         {(property.video_url || property.tour_url) && (
                             <div className="flex flex-wrap gap-4 mb-8">
                                 {property.video_url && (
@@ -118,7 +208,6 @@ export default async function PropertyDetailsPage({ params }: { params: Promise<
                             </div>
                         )}
 
-                        {/* خريطة العقار */}
                         {property.lat && property.lng && (
                             <div className="mb-8">
                                 <h2 className="text-xl font-bold mb-3 flex items-center gap-2">

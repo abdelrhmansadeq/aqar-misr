@@ -5,12 +5,18 @@ import { Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export function ShareButtons({ title, url }: { title: string; url: string }) {
+    // التأكد من أن الرابط كامل (يحتوي على الدومين)
+    // لو الرابط جاي نسبي (زي /properties/123)، هنضيف له الدومين الحالي
+    const fullUrl = url.startsWith('http')
+        ? url
+        : `${typeof window !== 'undefined' ? window.location.origin : ''}${url}`;
+
     const handleCopy = () => {
-        navigator.clipboard.writeText(url);
+        navigator.clipboard.writeText(fullUrl);
         toast.success("تم نسخ رابط العقار");
     };
 
-    const whatsappShare = `https://wa.me/?text=${encodeURIComponent(`شوف هذا العقار: ${title}\n${url}`)}`;
+    const whatsappShare = `https://wa.me/?text=${encodeURIComponent(`شوف هذا العقار: ${title}\n${fullUrl}`)}`;
 
     return (
         <div className="flex items-center gap-2">

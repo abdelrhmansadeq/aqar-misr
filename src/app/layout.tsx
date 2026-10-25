@@ -10,7 +10,7 @@ import { FavoritesProvider } from "@/components/providers/favorites-provider";
 import { CompareProvider } from "@/components/providers/compare-provider";
 import { CompareBar } from "@/components/property/compare-bar";
 import { Toaster } from "sonner";
-import { WhatsAppFloat } from "@/components/layout/whatsapp-float"; // ضفنا الاستيراد ده
+import { WhatsAppFloat } from "@/components/layout/whatsapp-float";
 
 const cairo = Cairo({
     subsets: ["arabic", "latin"],
@@ -19,6 +19,8 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
+    // ده الرابط الأساسي للموقع (مهم جداً عشان الصور تظهر صح لما تشارك اللينك)
+    metadataBase: new URL('https://aqar-misr-six.vercel.app'),
     title: {
         default: "عقار مصر | بوابتك لعالم العقارات",
         template: "%s | عقار مصر"
@@ -33,11 +35,20 @@ export const metadata: Metadata = {
         siteName: "عقار مصر",
         locale: "ar_EG",
         type: "website",
+        images: [
+            {
+                url: "/og-image.jpg", // هنحتاج نحط صورة باسم ده في فولدر public
+                width: 1200,
+                height: 630,
+                alt: "عقار مصر",
+            }
+        ],
     },
     twitter: {
         card: "summary_large_image",
         title: "عقار مصر",
         description: "تصفح آلاف العقارات الموثقة للبيع والإيجار في مصر.",
+        images: ["/og-image.jpg"],
     },
 };
 
@@ -66,10 +77,7 @@ export default function RootLayout({
                         <CompareBar />
                         <MobileBottomNav />
                         <Toaster position="bottom-center" richColors />
-
-                        {/* الزرار العائم هنا */}
                         <WhatsAppFloat />
-
                     </CompareProvider>
                 </FavoritesProvider>
             </NuqsAdapter>

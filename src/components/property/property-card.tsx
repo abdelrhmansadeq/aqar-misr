@@ -10,16 +10,16 @@ import { useFavorites } from "@/components/providers/favorites-provider";
 import { useCompare } from "@/components/providers/compare-provider";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/utils/time";
-import { useState, UIEvent, MouseEvent } from "react"; // ضفنا الأنواع عشان نمنع تحذيرات الـ UMD
+import { useState, UIEvent, MouseEvent } from "react";
 
-export function PropertyCard({ property }: { property: Property }) {
+// ✅ ضفنا priority كـ prop
+export function PropertyCard({ property, priority = false }: { property: Property; priority?: boolean }) {
     const { toggleFavorite, isFavorite } = useFavorites();
     const { toggleCompare, isInCompare } = useCompare();
 
     const favorited = isFavorite(property.id);
     const compared = isInCompare(property.id);
 
-    // تجهيز الصور مع التأكد من صلاحية الروابط
     let propertyImages: string[] = [];
     if (property.property_images && property.property_images.length > 0) {
         propertyImages = property.property_images
@@ -32,7 +32,6 @@ export function PropertyCard({ property }: { property: Property }) {
 
     const [activeIndex, setActiveIndex] = useState(0);
 
-    // لوجيك السلايدر
     const handleScroll = (e: UIEvent<HTMLDivElement>) => {
         const container = e.currentTarget;
         const scrollLeft = Math.abs(container.scrollLeft);
@@ -54,16 +53,12 @@ export function PropertyCard({ property }: { property: Property }) {
     return (
         <Link href={`/properties/${property.id}`}>
             <Card className="animate-fade-in-up overflow-hidden hover:shadow-lg transition-all duration-300 group h-full border-border bg-card flex flex-col">
-
-                {/* غيرنا aspect-[4/3] لـ aspect-4/3 عشان نرضي Tailwind */}
                 <div className="relative w-full aspect-4/3 bg-muted overflow-hidden">
-
                     <div
                         className="flex w-full h-full overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                         onScroll={handleScroll}
                     >
                         {propertyImages.map((img, index) => (
-                            /* غيرنا flex-shrink-0 لـ shrink-0 */
                             <div key={index} className="relative w-full h-full shrink-0 snap-center">
                                 <Image
                                     src={img}
@@ -71,6 +66,10 @@ export function PropertyCard({ property }: { property: Property }) {
                                     fill
                                     className="object-cover"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    // ✅ هنا بنحمل أول صورة بس بسرعة لو الكارت في أول الشاشة
+                                    priority={priority && index === 0}
+                                    // ✅ بنخلي باقي الصور تتحمل بس لما المستخدم يوصلها
+                                    loading={index === 0 ? "eager" : "lazy"}
                                 />
                             </div>
                         ))}
@@ -98,7 +97,6 @@ export function PropertyCard({ property }: { property: Property }) {
                             <Heart className={cn("h-4 w-4 transition-colors", favorited ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
                         </button>
 
-                        {/* شيلنا التعليق من جوه الزرار لأنه كان عامل خطأ */}
                         <button
                             onClick={(e) => handleAction(e, () => toggleCompare(property.id, property.purpose))}
                             className={cn(

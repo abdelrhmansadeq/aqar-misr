@@ -10,10 +10,10 @@ export function WhatsAppFloat() {
 
     return (
         <a
-            href="https://wa.me/201012345678" // غير الرقم ده لرقمك الحقيقي
+            href="https://wa.me/201068595864" // ✅ وحدنا الرقم مع الشريط السفلي (مع كود الدولة 20)
             target="_blank"
             rel="noopener noreferrer"
-            className="fixed bottom-20 md:bottom-8 left-4 md:left-8 z-50 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-xl hover:bg-[#20bd5a] hover:scale-110 transition-all duration-300 animate-float"
+            className="fixed bottom-[84px] md:bottom-8 left-4 md:left-8 z-40 flex items-center justify-center w-14 h-14 bg-[#25D366] text-white rounded-full shadow-xl hover:bg-[#20bd5a] hover:scale-110 transition-all duration-300 animate-float"
             aria-label="تواصل معنا عبر واتساب"
         >
             {/* كود لوجو الواتساب الرسمي */}

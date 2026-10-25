@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, X } from "lucide-react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 export function PropertyFilters() {
     const router = useRouter();
@@ -18,10 +19,11 @@ export function PropertyFilters() {
     const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
     const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
 
-    // الحقول الجديدة
     const [bedrooms, setBedrooms] = useState(searchParams.get("bedrooms") || "all");
     const [finishing, setFinishing] = useState(searchParams.get("finishing") || "all");
     const [deliveryStatus, setDeliveryStatus] = useState(searchParams.get("delivery_status") || "all");
+
+    const [isOpen, setIsOpen] = useState(false);
 
     const handlePurposeChange = (value: string | null) => { if (value) setPurpose(value); };
     const handleTypeChange = (value: string | null) => { if (value) setType(value); };
@@ -33,19 +35,17 @@ export function PropertyFilters() {
         e.preventDefault();
 
         const params = new URLSearchParams();
-
         if (purpose !== "all") params.set("purpose", purpose);
         if (type !== "all") params.set("type", type);
         if (city) params.set("city", city);
         if (minPrice) params.set("minPrice", minPrice);
         if (maxPrice) params.set("maxPrice", maxPrice);
-
-        // إضافة الفلاتر الجديدة
         if (bedrooms !== "all") params.set("bedrooms", bedrooms);
         if (finishing !== "all") params.set("finishing", finishing);
         if (deliveryStatus !== "all") params.set("delivery_status", deliveryStatus);
 
         router.push(`/properties?${params.toString()}`);
+        setIsOpen(false);
     };
 
     const clearFilters = () => {
@@ -58,10 +58,11 @@ export function PropertyFilters() {
         setFinishing("all");
         setDeliveryStatus("all");
         router.push("/properties");
+        setIsOpen(false);
     };
 
-    return (
-        <form onSubmit={handleSearch} className="bg-card border rounded-xl p-4 space-y-5 sticky top-24">
+    const renderFilterContent = () => (
+        <form onSubmit={handleSearch} className="space-y-5">
             <div className="flex items-center justify-between border-b pb-2">
                 <h2 className="font-bold text-lg">الفلاتر</h2>
                 <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-8 px-2">
@@ -100,12 +101,7 @@ export function PropertyFilters() {
                 <Label>المدينة / المنطقة</Label>
                 <div className="relative">
                     <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="مثال: التجمع"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="pr-9"
-                    />
+                    <Input placeholder="مثال: التجمع" value={city} onChange={(e) => setCity(e.target.value)} className="pr-9" />
                 </div>
             </div>
 
@@ -118,7 +114,6 @@ export function PropertyFilters() {
                 </div>
             </div>
 
-            {/* الفلاتر الجديدة */}
             <div className="pt-2 border-t space-y-4">
                 <div className="space-y-2">
                     <Label>عدد غرف النوم</Label>
@@ -164,8 +159,31 @@ export function PropertyFilters() {
             </div>
 
             <Button type="submit" className="w-full py-6 text-lg gap-2 mt-2">
-                <Search className="h-5 w-5" /> بحث
+                <Search className="h-5 w-5" /> عرض النتائج
             </Button>
         </form>
+    );
+
+    return (
+        <>
+            {/* 🌟 التعديل هنا: استخدام render بدل وضع Button جوه Trigger */}
+            <div className="md:hidden mb-4">
+                <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                    <SheetTrigger render={<Button className="w-full gap-2 py-6 text-lg" variant="outline" />}>
+                        <SlidersHorizontal className="h-5 w-5" /> تصفية النتائج
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-2xl px-4 pb-10">
+                        <SheetHeader className="mb-4 text-right">
+                            <SheetTitle>تصفية العقارات</SheetTitle>
+                        </SheetHeader>
+                        {renderFilterContent()}
+                    </SheetContent>
+                </Sheet>
+            </div>
+
+            <div className="hidden md:block bg-card border rounded-xl p-4 sticky top-24">
+                {renderFilterContent()}
+            </div>
+        </>
     );
 }

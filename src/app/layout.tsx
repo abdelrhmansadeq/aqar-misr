@@ -11,8 +11,9 @@ import { CompareProvider } from "@/components/providers/compare-provider";
 import { CompareBar } from "@/components/property/compare-bar";
 import { Toaster } from "sonner";
 import { WhatsAppFloat } from "@/components/layout/whatsapp-float";
-// ✅ استيراد أداة الإحصائيات
 import { Analytics } from '@vercel/analytics/next';
+// ✅ استيراد السوبابيز عشان نجيب الرقم
+import { createClient } from "@/lib/supabase/server";
 
 const cairo = Cairo({
     subsets: ["arabic", "latin"],
@@ -66,11 +67,22 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
-                                       children,
-                                   }: {
+export default async function RootLayout({
+                                             children,
+                                         }: {
     children: React.ReactNode;
 }) {
+    // ✅ جلب رقم الواتساب من الإعدادات
+    const supabase = await createClient();
+    const { data: settings } = await supabase
+        .from("site_settings")
+        .select("whatsapp_number")
+        .limit(1)
+        .single();
+
+    // لو مفيش رقم في الداتابيز، هنستخدم الرقم ده كاحتياطي
+    const whatsappNumber = settings?.whatsapp_number || "01068595864";
+
     return (
         <html lang="ar" dir="rtl" suppressHydrationWarning>
         <body className={`${cairo.variable} font-sans antialiased min-h-screen flex flex-col bg-background text-foreground`}>
@@ -89,10 +101,10 @@ export default function RootLayout({
                         </main>
                         <Footer />
                         <CompareBar />
-                        <MobileBottomNav />
+                        {/* ✅ بنمرر الرقم للمكونات */}
+                        <MobileBottomNav whatsappNumber={whatsappNumber} />
                         <Toaster position="bottom-center" richColors />
-                        <WhatsAppFloat />
-                        {/* ✅ إضافة أداة الإحصائيات هنا */}
+                        <WhatsAppFloat whatsappNumber={whatsappNumber} />
                         <Analytics />
                     </CompareProvider>
                 </FavoritesProvider>

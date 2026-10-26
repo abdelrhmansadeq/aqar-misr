@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,13 +19,13 @@ export function ViewingRequestDialog({ propertyId }: { propertyId: string }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [errors, setErrors] = useState<{ name?: string; phone?: string; general?: string }>({});
     const supabase = createClient();
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
+        setErrors({});
 
         const formData = new FormData(e.currentTarget);
         const name = formData.get("name") as string;
@@ -33,9 +33,22 @@ export function ViewingRequestDialog({ propertyId }: { propertyId: string }) {
         const date = formData.get("date") as string;
         const time = formData.get("time") as string;
 
+        let newErrors: { name?: string; phone?: string } = {};
+
+        // 1. التحقق من الاسم
+        if (name.trim().length < 3) {
+            newErrors.name = "الاسم يجب أن يكون 3 حروف على الأقل";
+        }
+
+        // 2. التحقق من رقم الموبايل
         const phoneRegex = /^01[0125][0-9]{8}$/;
         if (!phoneRegex.test(phone)) {
-            setError("يرجى إدخال رقم موبايل مصري صحيح (مثال: 01012345678)");
+            newErrors.phone = "يرجى إدخال رقم موبايل مصري صحيح (مثال: 01012345678)";
+        }
+
+        // لو فيه أخطاء، نوقف العملية
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             setLoading(false);
             return;
         }
@@ -50,7 +63,7 @@ export function ViewingRequestDialog({ propertyId }: { propertyId: string }) {
         });
 
         if (dbError) {
-            setError("حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.");
+            setErrors({ general: "حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى." });
             setLoading(false);
             return;
         }
@@ -64,14 +77,13 @@ export function ViewingRequestDialog({ propertyId }: { propertyId: string }) {
         if (!newOpen) {
             setTimeout(() => {
                 setSuccess(false);
-                setError(null);
+                setErrors({});
             }, 300);
         }
     };
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            {/* هنا استخدمنا render بدل asChild */}
             <DialogTrigger render={
                                 <Button variant="outline" className="w-full py-6 text-lg gap-2 border-primary text-primary hover:bg-primary/5">
                                    <CalendarDays className="h-5 w-5" />
@@ -100,12 +112,28 @@ export function ViewingRequestDialog({ propertyId }: { propertyId: string }) {
                     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                         <div className="space-y-2">
                             <Label>الاسم بالكامل</Label>
-                            <Input name="name" required placeholder="محمد أحمد" />
+                            <Input
+                                name="name"
+                                required
+                                placeholder="محمد أحمد"
+                                onChange={() => setErrors({ ...errors, name: undefined })}
+                                className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                            />
+                            {errors.name && <p className="text-xs text-destructive font-medium">{errors.name}</p>}
                         </div>
 
                         <div className="space-y-2">
                             <Label>رقم الموبايل</Label>
-                            <Input name="phone" type="tel" required placeholder="01xxxxxxxxx" dir="ltr" className="text-right" />
+                            <Input
+                                name="phone"
+                                type="tel"
+                                required
+                                placeholder="01xxxxxxxxx"
+                                dir="ltr"
+                                className={`text-right ${errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                onChange={() => setErrors({ ...errors, phone: undefined })}
+                            />
+                            {errors.phone && <p className="text-xs text-destructive font-medium">{errors.phone}</p>}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -119,7 +147,7 @@ export function ViewingRequestDialog({ propertyId }: { propertyId: string }) {
                             </div>
                         </div>
 
-                        {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+                        {errors.general && <p className="text-sm text-destructive font-medium">{errors.general}</p>}
 
                         <Button type="submit" className="w-full mt-2" disabled={loading}>
                             {loading ? "جاري الإرسال..." : "تأكيد الحجز"}

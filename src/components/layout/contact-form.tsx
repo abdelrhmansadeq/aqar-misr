@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +12,13 @@ import { Send } from "lucide-react";
 export function ContactForm() {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
     const supabase = createClient();
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
+        setErrors({});
 
         const formData = new FormData(e.currentTarget);
         const name = formData.get("name") as string;
@@ -24,6 +26,27 @@ export function ContactForm() {
         const phone = formData.get("phone") as string;
         const message = formData.get("message") as string;
 
+        let newErrors: { name?: string; phone?: string } = {};
+
+        // 1. التحقق من الاسم
+        if (name.trim().length < 3) {
+            newErrors.name = "الاسم يجب أن يكون 3 حروف على الأقل";
+        }
+
+        // 2. التحقق من رقم الموبايل (أرقام إنجليزية فقط + يبدأ بـ 010,011,012,015 + 11 رقم)
+        const phoneRegex = /^01[0125][0-9]{8}$/;
+        if (!phoneRegex.test(phone)) {
+            newErrors.phone = "يرجى إدخال رقم موبايل مصري صحيح (مثال: 01012345678)";
+        }
+
+        // لو فيه أخطاء، نوقف العملية
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            setLoading(false);
+            return;
+        }
+
+        // إرسال البيانات لو مفيش أخطاء
         const { error } = await supabase.from("contact_messages").insert({
             name,
             email,
@@ -56,10 +79,19 @@ export function ContactForm() {
     return (
         <form onSubmit={handleSubmit} className="space-y-4 bg-card border rounded-2xl p-6 shadow-sm">
             <h3 className="text-xl font-bold mb-4">أرسل لنا رسالة</h3>
+
             <div className="space-y-2">
                 <Label>الاسم بالكامل</Label>
-                <Input name="name" required placeholder="محمد أحمد" />
+                <Input
+                    name="name"
+                    required
+                    placeholder="محمد أحمد"
+                    onChange={() => setErrors({ ...errors, name: undefined })}
+                    className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {errors.name && <p className="text-xs text-destructive font-medium">{errors.name}</p>}
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>البريد الإلكتروني (اختياري)</Label>
@@ -67,13 +99,24 @@ export function ContactForm() {
                 </div>
                 <div className="space-y-2">
                     <Label>رقم الموبايل</Label>
-                    <Input name="phone" type="tel" required placeholder="01xxxxxxxxx" dir="ltr" className="text-right" />
+                    <Input
+                        name="phone"
+                        type="tel"
+                        required
+                        placeholder="01xxxxxxxxx"
+                        dir="ltr"
+                        className={`text-right ${errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                        onChange={() => setErrors({ ...errors, phone: undefined })}
+                    />
+                    {errors.phone && <p className="text-xs text-destructive font-medium">{errors.phone}</p>}
                 </div>
             </div>
+
             <div className="space-y-2">
                 <Label>رسالتك</Label>
                 <Textarea name="message" required placeholder="اكتب استفسارك هنا..." className="min-h-[120px]" />
             </div>
+
             <Button type="submit" disabled={loading} className="w-full py-6 text-lg gap-2">
                 <Send className="h-5 w-5" /> {loading ? "جاري الإرسال..." : "إرسال الرسالة"}
             </Button>
